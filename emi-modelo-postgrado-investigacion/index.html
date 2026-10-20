@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelo de Posgrado EMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=optional">
+<style>
+:root{
+  --ground:#0b2238;
+  --sheet:#0e2d4a;
+  --sheet-2:#123a60;
+  --plate:#eef3f6;
+  --plate-ink:#16212e;
+  --ink:#e9f2fa;
+  --ink-soft:#93acc4;
+  --line:rgba(223,238,250,.14);
+  --line-strong:rgba(223,238,250,.34);
+  --cyan:#7fd4e2;
+  --amber:#ffb454;
+  --white-line:#d8e8f4;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans", system-ui, sans-serif;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(0deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px);
+}
+h1,h2,h3,h4{font-family:"Oswald", "Arial Narrow", sans-serif; font-weight:600; margin:0; text-wrap:balance; letter-spacing:.01em;}
+p{margin:0;}
+ul{margin:0; padding:0;}
+button{font:inherit;}
+::selection{background:var(--amber); color:var(--plate-ink);}
+a{color:var(--cyan);}
+:focus-visible{outline:1.5px solid var(--cyan); outline-offset:2px;}
+
+.eyebrow{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.72rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--cyan);
+  display:flex; align-items:center; gap:.6em;
+}
+.eyebrow::before{content:""; width:1.6em; height:1px; background:var(--cyan);}
+
+/* ===== app shell ===== */
+.app{display:grid; grid-template-columns:272px 1fr; height:100vh; overflow:hidden;}
+
+.sidebar{background:var(--sheet); border-right:1px solid var(--line-strong); overflow-y:auto; display:flex; flex-direction:column;}
+.sidebar-head{padding:1.4rem 1.3rem 1.1rem; border-bottom:1px solid var(--line);}
+.sidebar-head .mark{font-family:"IBM Plex Mono",monospace; font-size:.64rem; letter-spacing:.16em; color:var(--cyan); text-transform:uppercase;}
+.sidebar-head h1{font-size:1.18rem; line-height:1.24; margin-top:.5rem; text-transform:uppercase;}
+.sidebar-head .sub{font-family:"IBM Plex Mono",monospace; font-size:.67rem; color:var(--ink-soft); margin-top:.6rem; letter-spacing:.02em;}
+.nav{flex:1; padding:.6rem 0 1.4rem;}
+.nav-group{margin-top:.9rem;}
+.nav-group .group-label{
+  padding:0 1.3rem; font-family:"IBM Plex Mono",monospace; font-size:.62rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:.35rem;
+}
+.nav-item{
+  display:flex; gap:.6rem; align-items:baseline; width:100%; text-align:left; background:none; border:none;
+  border-left:2px solid transparent; color:var(--ink-soft); padding:.46rem 1.3rem; font-size:.84rem; cursor:pointer;
+}
+.nav-item .n{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--ink-soft); flex:none; width:1.4rem;}
+.nav-item:hover{color:var(--ink); background:rgba(223,238,250,.04);}
+.nav-item.active{color:var(--ink); border-left-color:var(--amber); background:rgba(223,238,250,.06);}
+.nav-item.active .n{color:var(--amber);}
+
+/* ===== main / title block ===== */
+.main{display:flex; flex-direction:column; height:100vh; overflow:hidden;}
+.viewport{flex:1; overflow-y:auto; padding:0 clamp(1.6rem,5vw,4.2rem);}
+.panel{
+  max-width:1080px; margin:0 auto; padding:3.4rem 0; border-bottom:1px solid var(--line); scroll-margin-top:1rem;
+  opacity:0; transform:translateY(16px); transition:opacity .55s ease, transform .55s ease;
+}
+.panel.in-view{opacity:1; transform:none;}
+.panel:first-child{padding-top:2.2rem;}
+.panel:last-child{border-bottom:none; padding-bottom:4.5rem;}
+@media (prefers-reduced-motion:reduce){.panel{opacity:1; transform:none; transition:none;}}
+
+.titleblock{
+  flex:none; display:flex; align-items:stretch; border-top:1px solid var(--line-strong);
+  background:var(--sheet); font-family:"IBM Plex Mono",monospace; font-size:.68rem;
+}
+.titleblock .cell{padding:.5rem .9rem; border-right:1px solid var(--line); display:flex; flex-direction:column; justify-content:center; min-width:0;}
+.titleblock .cell span{color:var(--ink-soft); text-transform:uppercase; font-size:.58rem; letter-spacing:.09em;}
+.titleblock .cell b{color:var(--ink); font-size:.76rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.titleblock .spacer{flex:1;}
+.titleblock .navbtn{background:none; border:none; border-left:1px solid var(--line); color:var(--ink); padding:0 1.1rem; cursor:pointer; letter-spacing:.08em;}
+.titleblock .navbtn:hover{background:rgba(223,238,250,.07); color:var(--amber);}
+.titleblock .navbtn:disabled{opacity:.3; cursor:default;}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{position:fixed; inset:0 auto 0 0; width:82vw; max-width:300px; z-index:60; transform:translateX(-100%); transition:transform .25s ease; box-shadow:0 0 40px rgba(0,0,0,.5);}
+  .sidebar.open{transform:translateX(0);}
+  .menubtn{display:flex;}
+  .titleblock .cell.hide-sm{display:none;}
+}
+.menubtn{display:none; align-items:center; gap:.5rem; background:none; border:none; border-right:1px solid var(--line); color:var(--ink); font-family:"IBM Plex Mono",monospace; font-size:.72rem; padding:0 1rem; cursor:pointer;}
+.menubtn .bars{width:16px; height:11px; position:relative;}
+.menubtn .bars span{position:absolute; left:0; right:0; height:1.4px; background:var(--ink);}
+.menubtn .bars span:nth-child(1){top:0;} .menubtn .bars span:nth-child(2){top:5px;} .menubtn .bars span:nth-child(3){top:10px;}
+.scrim{display:none;}
+@media (max-width:860px){.scrim.open{display:block; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:55;}}
+
+/* ===== components ===== */
+.stack{display:flex; flex-direction:column; gap:1.8rem;}
+h2.panel-title{font-size:clamp(1.5rem,2.8vw,2.3rem); margin-top:.5rem; line-height:1.14;}
+.lede{font-size:clamp(.96rem,1.2vw,1.08rem); color:var(--ink-soft); max-width:62ch; margin-top:1rem; line-height:1.55;}
+
+.grid{display:grid; gap:1rem;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+@media (max-width:800px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+
+.frame{border:1px solid var(--line-strong); background:rgba(223,238,250,.025); padding:1.15rem 1.3rem; position:relative;}
+.frame::before,.frame::after{content:""; position:absolute; width:9px; height:9px; border:0 solid var(--cyan);}
+.frame::before{top:-1px; left:-1px; border-top-width:2px; border-left-width:2px;}
+.frame::after{bottom:-1px; right:-1px; border-bottom-width:2px; border-right-width:2px;}
+.frame.amber::before,.frame.amber::after{border-color:var(--amber);}
+.frame h3{font-size:1.02rem; color:var(--ink); text-transform:uppercase; letter-spacing:.02em; margin-bottom:.5rem;}
+.frame p{color:var(--ink-soft); font-size:.9rem; line-height:1.52;}
+.frame ul{margin-top:.55rem; padding-left:1.05rem; color:var(--ink-soft); font-size:.88rem; line-height:1.55; list-style:square;}
+.frame ul li::marker{color:var(--cyan);}
+
+.tag{
+  display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.67rem; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--cyan); border:1px solid var(--line-strong); padding:.2rem .55rem; margin:.15rem .3rem .15rem 0;
+}
+.tag-row{margin-top:.7rem;}
+
+.quote{border-left:2px solid var(--amber); padding-left:1.2rem; margin:1rem 0; font-size:1.12rem; font-style:italic; color:var(--ink);}
+.quote cite{display:block; font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:.72rem; color:var(--ink-soft); margin-top:.5rem; letter-spacing:.03em;}
+
+.stat{display:flex; flex-direction:column; border-top:1px solid var(--line-strong); padding-top:.6rem;}
+.stat b{font-family:"IBM Plex Mono",monospace; font-size:1.5rem; color:var(--amber); font-variant-numeric:tabular-nums;}
+.stat span{font-size:.78rem; color:var(--ink-soft);}
+
+table{border-collapse:collapse; width:100%; font-size:.86rem;}
+th,td{padding:.55rem .7rem; border:1px solid var(--line); text-align:left; vertical-align:top; color:var(--ink-soft);}
+td b{color:var(--ink);}
+th{background:var(--sheet-2); color:var(--ink); font-weight:600; font-family:"IBM Plex Mono",monospace; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em;}
+.table-wrap{overflow-x:auto; border:1px solid var(--line-strong);}
+.table-wrap table{border:none;}
+
+/* cover */
+.cover{display:flex; flex-direction:column; gap:1.5rem;}
+.cover .brandmark{display:flex; align-items:baseline; gap:.6rem; font-family:"Oswald",sans-serif; font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; color:var(--amber);}
+.cover .brandmark span{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.1em; color:var(--ink-soft); text-transform:uppercase;}
+.cover .crest{font-family:"IBM Plex Mono",monospace; font-size:.76rem; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft);}
+.cover .credit{font-family:"IBM Plex Mono",monospace; font-size:.76rem; color:var(--ink-soft); letter-spacing:.03em; border-top:1px solid var(--line); padding-top:.9rem; margin-top:.2rem;}
+.cover .credit b{color:var(--ink); font-weight:500;}
+.cover h2{font-size:clamp(2rem,5vw,3.6rem); line-height:1.05; text-transform:uppercase; max-width:18ch;}
+.cover .sub{font-family:"IBM Plex Mono",monospace; font-size:clamp(.9rem,1.4vw,1.05rem); color:var(--cyan); letter-spacing:.02em;}
+.cover .meta{display:flex; flex-wrap:wrap; gap:.8rem 1.6rem; font-family:"IBM Plex Mono",monospace; font-size:.76rem; color:var(--ink-soft); margin-top:.4rem;}
+.cover .meta span{border-left:2px solid var(--amber); padding-left:.6rem;}
+.cover .plate{margin-top:1rem; border:1px solid var(--line-strong); max-width:420px;}
+.cover .plate-head{display:flex; justify-content:space-between; padding:.6rem .9rem; border-bottom:1px solid var(--line); font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em;}
+.cover .plate ul{padding:.8rem 1.1rem 1rem; list-style:none;}
+.cover .plate li{display:flex; justify-content:space-between; gap:1rem; padding:.3rem 0; font-size:.84rem; color:var(--ink-soft); border-top:1px dashed var(--line);}
+.cover .plate li:first-child{border-top:none;}
+.cover .plate li b{color:var(--ink); font-weight:500;}
+.scrollcue{margin-top:.6rem; display:flex; flex-direction:column; align-items:center; gap:.4rem; font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); width:fit-content;}
+.scrollcue .chev{width:8px; height:8px; border-right:1.5px solid var(--cyan); border-bottom:1.5px solid var(--cyan); transform:rotate(45deg);}
+@media (prefers-reduced-motion:no-preference){.scrollcue{animation:bob 2.2s ease-in-out infinite;}}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+/* toc */
+.toc-card{display:flex; gap:1.1rem; align-items:flex-start;}
+.toc-card .num{font-family:"IBM Plex Mono",monospace; font-size:1.5rem; color:var(--amber); font-weight:600; flex:none;}
+
+/* figure (actual illustrations) */
+.figure-wrap{display:grid; grid-template-columns:1.4fr 1fr; gap:1.4rem; align-items:start;}
+@media (max-width:860px){.figure-wrap{grid-template-columns:1fr;}}
+.figure{background:var(--plate); border:1px solid var(--line-strong); padding:.8rem; position:relative;}
+.figure::before,.figure::after{content:""; position:absolute; width:11px; height:11px; border:0 solid var(--cyan);}
+.figure::before{top:-1px; left:-1px; border-top-width:2px; border-left-width:2px;}
+.figure::after{bottom:-1px; right:-1px; border-bottom-width:2px; border-right-width:2px;}
+.figure img{width:100%; display:block; aspect-ratio:5669/3288; height:auto; background:var(--plate);}
+.figure-cap{font-family:"IBM Plex Mono",monospace; font-size:.68rem; color:var(--ink-soft); margin-top:.6rem; letter-spacing:.02em;}
+.glossary{display:flex; flex-direction:column; gap:.65rem;}
+.glossary-head{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--cyan); border-bottom:1px solid var(--line); padding-bottom:.4rem;}
+.glossary .term{display:flex; flex-direction:column; gap:.15rem; border-top:1px solid var(--line); padding-top:.5rem;}
+.glossary .term:first-of-type{border-top:none; padding-top:0;}
+.glossary .term b{font-family:"IBM Plex Mono",monospace; font-size:.74rem; letter-spacing:.03em; color:var(--ink);}
+.glossary .term span{font-size:.82rem; color:var(--ink-soft); line-height:1.4;}
+
+/* ladder */
+.ladder{display:flex; align-items:flex-end; gap:.55rem; margin-top:1rem; overflow-x:auto; padding-bottom:.4rem;}
+.ladder .step{flex:1; min-width:150px; border:1px solid var(--line-strong); border-top:2px solid var(--cyan); padding:.85rem .95rem; display:flex; flex-direction:column; gap:.3rem; background:rgba(223,238,250,.02);}
+.ladder .step:nth-child(5){border-top-color:var(--amber);}
+.ladder .step .lvl{font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-soft); text-transform:uppercase;}
+.ladder .step h4{font-size:.92rem; color:var(--ink);}
+.ladder .step small{font-size:.76rem; color:var(--ink-soft);}
+.ladder .step:nth-child(1){height:120px;}
+.ladder .step:nth-child(2){height:146px;}
+.ladder .step:nth-child(3){height:172px;}
+.ladder .step:nth-child(4){height:198px;}
+.ladder .step:nth-child(5){height:224px;}
+@media (max-width:800px){.ladder{flex-direction:column; align-items:stretch;}.ladder .step{height:auto !important; border-top:1px solid var(--line); border-left:2px solid var(--cyan);}.ladder .step:nth-child(5){border-left-color:var(--amber);}}
+
+/* nested boxes */
+.nest{border:1px solid var(--line-strong); padding:1.5rem; display:flex; flex-direction:column; align-items:center;}
+.nest .lvl1{width:100%; border:1.5px solid var(--white-line); padding:1.1rem;}
+.nest .lvl2{width:88%; border:1.5px dashed var(--cyan); padding:1rem; margin:0 auto;}
+.nest .lvl3{width:78%; border:1.5px solid var(--amber); padding:.9rem; margin:0 auto;}
+.nest .tagline{font-family:"IBM Plex Mono",monospace; font-size:.66rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);}
+.nest h4{font-size:.98rem; margin-top:.25rem; color:var(--ink);}
+.nest p{font-size:.82rem; color:var(--ink-soft); margin-top:.3rem;}
+
+/* bar stack */
+.barstack{display:flex; width:100%; height:42px; border:1px solid var(--line-strong);}
+.barstack .seg{display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",monospace; font-size:.72rem; font-weight:600;}
+.barstack-legend{display:flex; flex-wrap:wrap; gap:.55rem 1.2rem; margin-top:.9rem;}
+.barstack-legend .item{display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:var(--ink-soft);}
+.barstack-legend .sw{width:11px; height:11px; flex:none;}
+
+.closing-rule{width:60px; height:2px; background:var(--amber); margin:1.3rem 0;}
+.source-note{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <p class="mark">EMI · Documento normativo</p>
+      <h1>Modelo de Postgrado e Investigación</h1>
+      <p class="sub">Capítulo 1 — Producción de Formación Posgradual e Investigación</p>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <div class="viewport" id="viewport">
+
+      <section class="panel" id="sec-0" data-title="Portada" data-chapter="Portada">
+        <div class="cover">
+          <p class="brandmark">Blueprint <span>— RAML Consultores</span></p>
+          <p class="crest">Escuela Militar de Ingeniería · "Mcal. Antonio José de Sucre"</p>
+          <h2>Modelo de Postgrado e Investigación</h2>
+          <p class="sub">CAPÍTULO 1 — PRODUCCIÓN DE FORMACIÓN POSGRADUAL E INVESTIGACIÓN</p>
+          <div class="meta">
+            <span>Fase 2 — Formulación del Modelo</span>
+            <span>Documento de trabajo — borrador en redacción</span>
+            <span>2026</span>
+          </div>
+          <div class="plate">
+            <div class="plate-head"><span>Lámina</span><span>00 / 15</span></div>
+            <ul>
+              <li><b>01</b> Sistema de Formación Posgradual</li>
+              <li><b>02</b> Investigación y Producción Científica</li>
+              <li><b>03</b> Modelo de Posgrado e Investigación</li>
+              <li><b>04</b> Gestión Académica</li>
+            </ul>
+          </div>
+          <p class="credit">Consultor: <b>Ramiro Abdón Mamani Laime</b> · 2026</p>
+          <div class="scrollcue"><span>desplazar</span><span class="chev"></span></div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-1" data-title="Mapa del capítulo" data-chapter="Índice">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Mapa del capítulo</p>
+            <h2 class="panel-title">Cuatro bloques, un solo sistema</h2>
+            <p class="lede">El Capítulo 1 desarrolla el "Core" académico que integra la formación posgradual, la investigación y la gestión académica — Producto 1 del Plan de trabajo de la Fase 2.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame toc-card"><span class="num">01</span><div><h3>Sistema de Formación Posgradual</h3><p>Unidad dual investigación–formación; Posgrado de Investigación (MSc, Ph.D., Posdoctorado) y Posgrado de Formación (microcredenciales a Maestría Profesionalizante).</p></div></div>
+            <div class="frame toc-card"><span class="num">02</span><div><h3>Investigación y Producción Científica</h3><p>Institutos, Centros y Grupos de investigación; áreas y líneas institucionales; claustro docente-investigador; indexación y spin-offs.</p></div></div>
+            <div class="frame toc-card amber"><span class="num">03</span><div><h3>Modelo de Posgrado e Investigación</h3><p>Síntesis gráfica: cómo investigación y formación operan como un solo sistema articulado.</p></div></div>
+            <div class="frame toc-card"><span class="num">04</span><div><h3>Gestión Académica</h3><p>Gobernanza unitaria (CNIP/DNIP), tronco común de datos, aseguramiento de calidad y posicionamiento en rankings QS.</p></div></div>
+          </div>
+          <p class="source-note">12 cuadros normativos y más de 45 fuentes académicas sostienen el desarrollo del capítulo.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-2" data-title="Unidad dual" data-chapter="1.1 — Unidad dual">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1 — Principio rector</p>
+            <h2 class="panel-title">Unidad dual investigación–formación</h2>
+            <blockquote class="quote">"en el posgrado se enseña lo que se investiga"<cite>Modelo Académico EMI (2025)</cite></blockquote>
+            <p class="lede">Investigación y posgrado son dos caras de un mismo proceso de conocimiento: producir, validar, enseñar, aplicar y transferir. Ningún programa de posgrado puede sostenerse sin una línea de investigación institucional activa que lo origine.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame">
+              <h3>Posgrado de Investigación</h3>
+              <p><b style="color:var(--ink)">Función:</b> generar conocimiento científico y formar investigadores.</p>
+              <ul><li>Vínculo de <em>origen</em> con la investigación institucional</li><li>Grados: MSc., Ph.D., actividad posdoctoral</li><li>Perfil académico-investigador</li><li>Funcionalidad: publicar en revistas indexadas</li></ul>
+            </div>
+            <div class="frame">
+              <h3>Posgrado de Formación</h3>
+              <p><b style="color:var(--ink)">Función:</b> transferir y expandir hacia la sociedad el conocimiento generado.</p>
+              <ul><li>Vínculo de <em>insumo</em>: aplica contenidos ya producidos</li><li>Microcredencial, Diplomado, Especialidad, Maestría Profesionalizante</li><li>Perfil profesional en ejercicio</li><li>Funcionalidad: valor de perfil y promoción laboral</li></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-3" data-title="Ontología del grado" data-chapter="1.2 — Ontología del grado">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.1 – 1.2.2 — Fundamentos</p>
+            <h2 class="panel-title">El grado académico como rito de paso</h2>
+            <p class="lede">Un grado de Maestría Científica o Doctorado no es una licencia docente: certifica la capacidad de <em>producir</em> conocimiento nuevo, no solo de <em>aplicarlo</em>. Popper (1959) y Kuhn (1962) fundamentan esa capacidad como sometimiento del conocimiento a prueba rigurosa y, eventualmente, a la construcción de nuevos marcos explicativos.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame"><h3>Magister Scientiarum — MSc.</h3><p>Primer peldaño de la práctica investigativa sistemática; antesala del Doctorado.</p><div class="tag-row"><span class="tag">60 créditos</span><span class="tag">1.800–2.400 h</span><span class="tag">≥18 meses</span><span class="tag">Tesis de Grado</span></div></div>
+            <div class="frame amber"><h3>Philosophiæ Doctor — Ph.D.</h3><p>Agente autónomo de generación de conocimiento original; amplía la frontera disciplinar.</p><div class="tag-row"><span class="tag">70 créditos</span><span class="tag">2.100–2.800 h</span><span class="tag">≥30 meses</span><span class="tag">Tesis Doctoral</span></div></div>
+          </div>
+          <div class="grid grid-3">
+            <div class="stat"><b>10% / 90%</b><span>Horas lectivas / no lectivas del Doctorado (Art. 15, Reglamento SUB)</span></div>
+            <div class="stat"><b>40% / 60%</b><span>Horas lectivas / no lectivas de la Maestría Científica</span></div>
+            <div class="stat"><b>50 de 400+</b><span>Universidades AAU que concentran ~50% de los doctorados en EE. UU. (Nerad, 2008)</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-4" data-title="El discipulado" data-chapter="1.2.3 — Discipulado">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.3 – 1.2.6 — Formación del investigador · Ilustración 2</p>
+            <h2 class="panel-title">El discipulado: maestro y discípulo</h2>
+            <p class="lede">La investigación no es una tarea individual: se forma por acompañamiento directo de un investigador sénior, bajo una pirámide de responsabilidad creciente — el mismo esquema que da origen al Grupo de Investigación.</p>
+          </div>
+          <div class="figure-wrap">
+            <div class="figure">
+              <img src="imagenes/02.png" width="5669" height="3288" alt="Pirámide de responsabilidad creciente: Investigador Titular, Investigador Asociado, Investigador Asistente 1 y 2, Asistentes de grado" loading="lazy" />
+              <p class="figure-cap">Ilustración 2 — Pirámide de responsabilidad creciente (apartado 1.2.3, fuente: elaboración propia)</p>
+            </div>
+            <div class="glossary">
+              <p class="glossary-head">Palabras clave</p>
+              <div class="term"><b>Investigador Titular — PhD</b><span>Investigador sénior responsable (PI) de un Grupo; habilitado para dirigir Centro o Instituto.</span></div>
+              <div class="term"><b>Investigador Asociado — PhD externo</b><span>Colaborador en proyectos conjuntos; vínculo internacional, sin plaza permanente.</span></div>
+              <div class="term"><b>Asistente 1 — MSc, candidato a PhD</b><span>Ejecuta el trabajo de investigación bajo tutela directa de un Titular.</span></div>
+              <div class="term"><b>Asistente 2 — Lic., candidato a MSc</b><span>Ejecuta tareas específicas de investigación bajo tutela de un Titular.</span></div>
+              <div class="term"><b>Asistentes — estudiantes de grado</b><span>Apoyo operativo en obtención, preparación y consolidación de datos.</span></div>
+            </div>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Modalidades</h3><p>Presencial de tiempo completo (referencia internacional) o <em>blended</em>: teoría virtual + actos que exigen copresencia (laboratorio, exámenes, defensa).</p></div>
+            <div class="frame"><h3>Convergencia internacional</h3><p>Declaración de Seattle (2005): investigación original, 3–7 años de duración efectiva, examinadores externos, <em>Graduate School</em> como coordinación institucional.</p></div>
+            <div class="frame"><h3>Posdoctorado</h3><p>No otorga grado académico. Es una etapa de práctica investigativa autónoma y tutelada entre el Doctorado y la condición de investigador sénior.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-5" data-title="Diferencia fundamental" data-chapter="Cuadro 1.2">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.8 — Cuadro 1.2</p>
+            <h2 class="panel-title">Diferencia de naturaleza, no de jerarquía</h2>
+            <p class="lede">Ningún programa puede diseñarse sin determinar primero a cuál columna pertenece: de ello dependen su finalidad, dedicación, financiamiento y contribución a la reputación institucional.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Criterio</th><th>Posgrado de Investigación</th><th>Posgrado de Formación</th></tr></thead>
+              <tbody>
+                <tr><td>Objeto formativo</td><td>Generar conocimiento nuevo: teoría, metodología original, innovación verificable</td><td>Aplicar con rigor conocimiento ya producido a la práctica profesional</td></tr>
+                <tr><td>Naturaleza del trabajo</td><td>Investigación autónoma bajo discipulado; no se mide en horas de clase</td><td>Enseñanza y aplicación guiada, en asignaturas/módulos</td></tr>
+                <tr><td>Horas lectivas / no lectivas</td><td>Doctorado 10/90 · Maestría Científica 40/60</td><td>Diplomado 30/70 · Maestría Profesionalizante 40/60</td></tr>
+                <tr><td>Financiamiento del estudiante</td><td>Asistencias de investigación/docencia, becas competitivas</td><td>Matrícula pagada por el propio posgraduante</td></tr>
+                <tr><td>Reputación que construye</td><td>Individual del investigador + institucional ante la comunidad científica</td><td>Institucional ante empleadores y sectores productivos</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-6" data-title="Categorías de formación" data-chapter="1.3.1 — Categorías">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.3.1 — Cuadros 1.3 y 1.4</p>
+            <h2 class="panel-title">Posgrado de Formación: dos categorías</h2>
+            <p class="lede">No genera investigación: su valor es la aplicación rigurosa de conocimiento ya producido a la necesidad profesional concreta.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame">
+              <h3>Formación Continua — sin grado académico</h3>
+              <ul><li><b style="color:var(--ink)">Curso corto</b> — hasta 20 h, no certifica créditos</li><li><b style="color:var(--ink)">Microcredencial</b> — 20 a 40 h · 1 a 4 créditos acumulables</li><li><b style="color:var(--ink)">Programa especializado</b> — 4 a 7 microcredenciales + examen integrador (<em>capstone</em>)</li></ul>
+            </div>
+            <div class="frame amber">
+              <h3>Formación Académica Profesional — otorga grado</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Programa</th><th>Créditos</th><th>Graduación</th></tr></thead>
+                  <tbody>
+                    <tr><td>Diplomado</td><td>≥ 20</td><td>Monografía</td></tr>
+                    <tr><td>Especialidad Técnica</td><td>25</td><td>Trabajo de Grado</td></tr>
+                    <tr><td>Especialidad Superior</td><td>40</td><td>Trabajo de Grado</td></tr>
+                    <tr><td>Maestría Profesionalizante</td><td>60</td><td>Tesis / Trabajo de Grado</td></tr>
+                    <tr><td>Esp. Clínico-Quirúrgica*</td><td>SNRM</td><td>Trabajo de Grado</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="margin-top:.5rem; font-size:.74rem;">* donde corresponda al área de la oferta EMI, según el Sistema Nacional de Residencia Médica.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-7" data-title="Trayectorias progresivas" data-chapter="1.3.2–1.3.3">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.3.2 – 1.3.3 — Cuadro 1.5</p>
+            <h2 class="panel-title">Una escalera de créditos apilables</h2>
+            <p class="lede">Evolución de la primera generación de MOOC (Stanford, 2011: 58.000 inscritos, &lt;5% de finalización) hacia formatos verificados, pagados y acumulables — <em>Specializations</em> y <em>MicroMasters</em> del MIT, Harvard y Stanford.</p>
+          </div>
+          <div class="ladder">
+            <div class="step"><span class="lvl">Nivel 0</span><h4>Microcredencial</h4><small>1–4 créditos · 20–40 h</small></div>
+            <div class="step"><span class="lvl">Nivel 1</span><h4>Programa especializado</h4><small>4–7 microcredenciales + capstone</small></div>
+            <div class="step"><span class="lvl">Nivel 2</span><h4>MicroMáster</h4><small>≥ 20 créditos acumulados</small></div>
+            <div class="step"><span class="lvl">Nivel 3</span><h4>Diplomado Académico</h4><small>MicroMáster + proyecto integrador</small></div>
+            <div class="step"><span class="lvl">Nivel 4</span><h4>Maestría Profesionalizante</h4><small>reconoce hasta 40 de 60 créditos</small></div>
+          </div>
+          <div class="grid grid-4">
+            <div class="frame"><h3>Activo de capital humano</h3><p>Cada microcredencial o grado aprobado: unidad verificable de competencia.</p></div>
+            <div class="frame"><h3>Cuenta de ahorro académico</h3><p>Registro individual de créditos, con ventana de caducidad de 3 a 5 años.</p></div>
+            <div class="frame"><h3>Tasa de Retorno Educativo</h3><p>ROEI: costo de la ruta formativa frente al incremento de empleabilidad.</p></div>
+            <div class="frame"><h3>Clearing académico</h3><p>Canje válido de un crédito emitido por una unidad en otra de mayor jerarquía.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-8" data-title="Modalidades y mercado" data-chapter="1.3.4–1.3.5">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.3.4 – 1.3.5 — Producción y alcance</p>
+            <h2 class="panel-title">Del mercado por sede al mercado por reputación</h2>
+            <p class="lede">Las líneas temáticas de producción deben ser un subconjunto de las líneas de investigación activas: nacen en los institutos/centros/grupos, se validan por la DNIP y se producen en la Unidad Microcurricular.</p>
+          </div>
+          <div class="grid grid-4">
+            <div class="frame"><h3>Presencial</h3><p>Exigida donde la competencia no puede verificarse a distancia: laboratorio, defensa de tesis.</p></div>
+            <div class="frame"><h3>Virtual</h3><p>Equilibra el alcance territorial entre sedes y Unidades Académicas Descentralizadas.</p></div>
+            <div class="frame"><h3>Blended</h3><p>60–70% asíncrono autónomo + 30–40% síncrono de mentoría aplicada — modalidad de referencia.</p></div>
+            <div class="frame amber"><h3>MOOC</h3><p>Formato de producción de la microcredencial de Nivel 0, nunca de un grado completo.</p></div>
+          </div>
+          <blockquote class="quote">La escalabilidad no depende de dónde se produce el programa, sino de la calidad de producción, las alianzas estratégicas y la reputación construida en líneas temáticas sostenidas.</blockquote>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-9" data-title="Institutos · Centros · Grupos" data-chapter="2.1 — Organización">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">2.1 — Cuadros 1.6 y 1.7</p>
+            <h2 class="panel-title">Una escalera de constitución ascendente</h2>
+            <p class="lede">Un Grupo nace primero; varios Grupos maduros se articulan en un Centro; varios Centros, en un Instituto. Ascender exige masa crítica y productividad verificable — nunca es una decisión discrecional.</p>
+          </div>
+          <div class="nest">
+            <div class="lvl1"><p class="tagline">Instituto de Investigación · macro</p><h4>Captación de fondos de gran escala · política científica institucional</h4><p>≥ 2 Centros · ≥ 6 Investigadores Titulares · 20 publicaciones indexadas en 3 años</p>
+              <div class="lvl2"><p class="tagline">Centro de Investigación · meso</p><h4>Administra laboratorios y posgrado de investigación especializado</h4><p>≥ 3 Grupos · ≥ 3 Titulares + 2 Adjuntos/Asociados · 6 publicaciones en 2 años</p>
+                <div class="lvl3"><p class="tagline">Grupo de Investigación · micro — célula operativa</p><h4>1 Titular (líder) + 2 investigadores</h4><p>3 publicaciones del líder en 5 años · 1 publicación/año desde el 2º año</p></div>
+              </div>
+            </div>
+          </div>
+          <p class="source-note">Referente histórico: la Sociedad Max Planck (1948) administraba ~60 institutos de investigación básica (Clark, 1995).</p>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-10" data-title="Líneas y claustro" data-chapter="2.2–2.6">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">2.2 – 2.3 / 2.6 — Cuadro 1.8</p>
+            <h2 class="panel-title">De la línea al Departamento, y el claustro que la sostiene</h2>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Área de Investigación</h3><p>Campo disciplinar estable (p. ej. defensa, ingeniería aplicada). Aprobada por el CNIP; no se redefine en cada ciclo.</p></div>
+            <div class="frame"><h3>Línea de Investigación</h3><p>Agenda dinámica de mediano plazo. Condición de entrada para toda Maestría, Especialización o Doctorado.</p></div>
+            <div class="frame amber"><h3>Departamento de Investigación</h3><p>Aloja los Institutos, Centros y Grupos de una misma Área; origina toda maestría o doctorado de esa familia disciplinar.</p></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Categoría</th><th>Vínculo con la EMI</th><th>Función</th></tr></thead>
+              <tbody>
+                <tr><td><b>Titular</b> (de número)</td><td>Plaza permanente</td><td>Investigador sénior responsable (PI); dirige Centro o Instituto</td></tr>
+                <tr><td><b>Asociado</b> (externo)</td><td>Sin plaza, colaborador por proyecto</td><td>Vínculo internacional y colaborativo</td></tr>
+                <tr><td><b>Asistente</b></td><td>Temporal, coextensiva con su posgrado</td><td>Ejecuta la investigación bajo tutela (discipulado)</td></tr>
+                <tr><td><b>Adjunto</b></td><td>Contrato por periodo y producto</td><td>Capacidad científica específica no disponible entre Titulares</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="lede" style="margin-top:.1rem;">Carrera interna: <b style="color:var(--ink)">Asistente → Adjunto → Titular</b>, por concurso de méritos y productividad verificable.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-11" data-title="Esquema del modelo" data-chapter="3 — Modelo">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3 — Síntesis gráfica · Ilustración 1</p>
+            <h2 class="panel-title">Investigación y posgrado como un solo sistema</h2>
+            <p class="lede">La producción científica se convierte en materia prima docente; la oferta de formación genera, a su vez, los recursos que retroalimentan la investigación.</p>
+          </div>
+          <div class="figure-wrap">
+            <div class="figure">
+              <img src="imagenes/01.png" width="5669" height="3288" alt="Esquema gráfico del Modelo de Posgrado e Investigación de la EMI: columna de Investigación (Departamentos, Institutos, Centros, Grupos) y columna de Posgrado (Microcredenciales a Maestría Profesionalizante), unidas por Productos e Insumos, enmarcadas por Líneas de Investigación y Líneas Temáticas de Formación, sostenidas por la Secretaría Académica" loading="lazy" />
+              <p class="figure-cap">Ilustración 1 — Esquema gráfico del Modelo de Posgrado e Investigación de la EMI (apartado 3.3, fuente: elaboración propia)</p>
+            </div>
+            <div class="glossary">
+              <p class="glossary-head">Palabras clave</p>
+              <div class="term"><b>Departamentos · Institutos · Centros · Grupos</b><span>Escalera de constitución ascendente de la investigación institucional.</span></div>
+              <div class="term"><b>Productos</b><span>Académicos de prestigio, producción científica indexada, recursos de enseñanza.</span></div>
+              <div class="term"><b>Insumos</b><span>Docentes y recursos de enseñanza que alimentan la formación.</span></div>
+              <div class="term"><b>Líneas de investigación / temáticas</b><span>Enmarcan y orientan, respectivamente, cada columna del modelo.</span></div>
+              <div class="term"><b>Microcredencial → Maestría</b><span>Escalera de producción de formación profesional, de base a cúspide.</span></div>
+              <div class="term"><b>Secretaría Académica</b><span>Gestión transversal que sostiene, en la base, ambas columnas.</span></div>
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame"><h3>Internacionalización</h3><p>Triple Hélice universidad–industria–gobierno (Etzkowitz &amp; Leydesdorff, 2000): convenios, coautoría y movilidad como condición de acceso a los circuitos de validación del conocimiento.</p></div>
+            <div class="frame"><h3>Spin-offs y transferencia</h3><p>Toda línea activa debe poder generar spin-offs universitarias: la transferencia tecnológica nunca se desconecta del ecosistema de investigación y posgrado.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-12" data-title="Gobernanza" data-chapter="4.1 — Gobernanza">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">4.1 — Cuadro 1.9</p>
+            <h2 class="panel-title">Gobierno unitario: dos conjuntos, un mismo sistema</h2>
+            <p class="lede">La investigación y la formación no se gobiernan como líneas de mando separadas, sino como dos conjuntos que se intersectan. El Posgrado de Investigación —Maestría Científica, Doctorado, Posdoctorado— es exactamente esa intersección: forma investigadores, pero su actividad misma es la investigación que produce.</p>
+          </div>
+
+          <div class="figure-wrap">
+            <div class="figure">
+              <img src="imagenes/03.png" width="1760" height="1545" alt="Gobierno unitario de investigación y posgrado: Vicerrectorado, Consejo Nacional (CNIP) y Dirección Nacional (DNIP) sobre dos conjuntos que se intersectan — Posgrado de Formación e Investigación, cuya intersección es el Posgrado de Investigación — sostenidos por tres direcciones de gestión transversal" loading="lazy" />
+              <p class="figure-cap">Ilustración 3 — Gobierno unitario de investigación y posgrado (apartado 4.1, fuente: elaboración propia)</p>
+            </div>
+            <div class="glossary">
+              <p class="glossary-head">Palabras clave</p>
+              <div class="term"><b>Vicerrectorado</b><span>Planificación y coordinación nacional del sistema.</span></div>
+              <div class="term"><b>CNIP</b><span>Consejo Nacional de Investigación y Posgrado — órgano colegiado consultivo.</span></div>
+              <div class="term"><b>DNIP</b><span>Dirección Nacional de Investigación y Posgrado — conducción operativa única.</span></div>
+              <div class="term"><b>Posgrado de Formación ∩ Investigación</b><span>Dos conjuntos que se intersectan: la intersección es el Posgrado de Investigación.</span></div>
+              <div class="term"><b>Tres direcciones de soporte</b><span>Académica, Administrativa-Financiera e Información, que sostienen todo el ecosistema.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-13" data-title="Datos y calidad" data-chapter="4.2–4.3">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">4.2 – 4.3 — Cuadros 1.10 y 1.11</p>
+            <h2 class="panel-title">Un tronco común de datos, no sistemas aislados</h2>
+            <p class="lede">Ningún lineamiento del Modelo es ejecutable si la información permanece dispersa en hojas electrónicas. Un mismo dato se captura una vez en su origen y se reutiliza en todos los módulos (Rogers, 2016).</p>
+          </div>
+          <div class="tag-row">
+            <span class="tag">Registro académico de posgrado</span>
+            <span class="tag">Kardex docente</span>
+            <span class="tag">Billetera digital de créditos</span>
+            <span class="tag">Líneas · Institutos · Centros · Grupos</span>
+            <span class="tag">Producción científica indexada</span>
+            <span class="tag">Claustro docente-investigador</span>
+            <span class="tag">Registro financiero</span>
+            <span class="tag">Contabilidad en tiempo real</span>
+            <span class="tag">Internacionalización y rankings</span>
+          </div>
+          <div class="grid grid-3" style="margin-top:.3rem;">
+            <div class="frame"><h3>Posgrado de Investigación</h3><p>% de tesis con examinador externo; tiempo de titulación frente al estándar de 4–7 años.</p></div>
+            <div class="frame"><h3>Posgrado de Formación</h3><p>Tasa de finalización de microcredenciales; reconocimiento por empleadores.</p></div>
+            <div class="frame"><h3>Producción científica</h3><p>% de artículos indexados sobre el total de investigadores; citas por investigador.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-14" data-title="Rankings QS" data-chapter="4.4 — Rankings">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">4.4 — Cuadro 1.12</p>
+            <h2 class="panel-title">Incidencia directa sobre la metodología QS</h2>
+            <p class="lede">El posicionamiento en rankings de prestigio mundial (MIT, Oxford, Stanford, Harvard, ETH Zürich) depende, en más de la mitad de su peso, de la producción científica que este Modelo organiza.</p>
+          </div>
+          <div class="barstack">
+            <div class="seg" style="flex:50; background:var(--sheet-2); color:var(--ink); border-right:1px solid var(--line);">Investigación 50%</div>
+            <div class="seg" style="flex:20; background:var(--cyan); color:var(--plate-ink); border-right:1px solid var(--line);">Empleabilidad 20%</div>
+            <div class="seg" style="flex:15; background:var(--amber); color:var(--plate-ink); border-right:1px solid var(--line);">Global 15%</div>
+            <div class="seg" style="flex:10; background:var(--ink-soft); color:var(--plate-ink); border-right:1px solid var(--line);">Aprendizaje 10%</div>
+            <div class="seg" style="flex:5; background:transparent; color:var(--ink-soft);">5%</div>
+          </div>
+          <div class="barstack-legend">
+            <div class="item"><span class="sw" style="background:var(--sheet-2); border:1px solid var(--line-strong);"></span>Reputación académica (30%) + Citas por docente (20%)</div>
+            <div class="item"><span class="sw" style="background:var(--cyan)"></span>Reputación entre empleadores (15%) + Resultados de empleo (5%)</div>
+            <div class="item"><span class="sw" style="background:var(--amber)"></span>Docentes, red y estudiantes internacionales (5% c/u)</div>
+            <div class="item"><span class="sw" style="background:var(--ink-soft)"></span>Ratio estudiante/docente</div>
+            <div class="item"><span class="sw" style="background:transparent; border:1px solid var(--line-strong);"></span>Sostenibilidad</div>
+          </div>
+          <p class="lede" style="margin-top:.3rem;">Masa crítica de Titulares, Asociados, Asistentes y Adjuntos (Cuadro 1.7) alimenta directamente el ratio estudiante/docente de la metodología QS (2026).</p>
+        </div>
+      </section>
+
+      <section class="panel" id="sec-15" data-title="Síntesis" data-chapter="Cierre">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Cierre</p>
+            <h2 class="panel-title">Una sola factoría de conocimiento</h2>
+            <p class="lede" style="max-width:68ch;">El Modelo no crea una oferta académica paralela: traduce el principio de unidad dual —investigación y posgrado como dos caras de un mismo proceso— en un sistema operable, clasificado y verificable, con una sola gobernanza, un solo tronco de datos y un mismo propósito de reputación científica internacional.</p>
+          </div>
+          <div class="closing-rule"></div>
+          <p class="source-note">Capítulo 1 — Modelo de Postgrado e Investigación, Escuela Militar de Ingeniería · Fase 2, Acción 1 · Documento de trabajo en redacción, 2026.</p>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <button class="menubtn" id="menubtn"><span class="bars"><span></span><span></span><span></span></span>Índice</button>
+      <div class="cell" style="min-width:150px;"><span>Documento</span><b>Modelo de Posgrado EMI</b></div>
+      <div class="cell hide-sm" style="min-width:170px;"><span>Sección</span><b id="tb-chapter">—</b></div>
+      <div class="cell hide-sm"><span>Lámina</span><b id="tb-count">01 / 16</b></div>
+      <div class="spacer"></div>
+      <div class="cell hide-sm" style="border-right:none;"><span>Fase</span><b>2 · 2026</b></div>
+      <div class="nav-btns" style="display:flex;">
+        <button class="navbtn" id="prevbtn" aria-label="Sección anterior">◀ ANT.</button>
+        <button class="navbtn" id="nextbtn" aria-label="Siguiente sección">SIG. ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var groups = [
+    { label:"Portada", items:[0] },
+    { label:"Índice", items:[1] },
+    { label:"1 · Sistema de Formación Posgradual", items:[2,3,4,5,6,7,8] },
+    { label:"2 · Investigación y Producción Científica", items:[9,10] },
+    { label:"3 · Modelo de Posgrado e Investigación", items:[11] },
+    { label:"4 · Gestión Académica", items:[12,13,14] },
+    { label:"Cierre", items:[15] }
+  ];
+
+  var panels = Array.prototype.slice.call(document.querySelectorAll(".panel"));
+  var nav = document.getElementById("nav");
+  var navItems = [];
+  var viewport = document.getElementById("viewport");
+
+  groups.forEach(function(g){
+    var grp = document.createElement("div");
+    grp.className = "nav-group";
+    var label = document.createElement("p");
+    label.className = "group-label";
+    label.textContent = g.label;
+    grp.appendChild(label);
+    g.items.forEach(function(i){
+      var btn = document.createElement("button");
+      btn.className = "nav-item";
+      btn.innerHTML = '<span class="n">' + String(i).padStart(2,"0") + "</span><span>" + panels[i].dataset.title + "</span>";
+      btn.addEventListener("click", function(){
+        panels[i].scrollIntoView({ behavior:"smooth", block:"start" });
+        closeSidebar();
+      });
+      grp.appendChild(btn);
+      navItems.push(btn);
+    });
+    nav.appendChild(grp);
+  });
+
+  var current = 0;
+  var tbChapter = document.getElementById("tb-chapter");
+  var tbCount = document.getElementById("tb-count");
+  var prevbtn = document.getElementById("prevbtn");
+  var nextbtn = document.getElementById("nextbtn");
+
+  function setActive(i){
+    if (i === current) return;
+    current = i;
+    navItems.forEach(function(b,idx){ b.classList.toggle("active", idx===i); });
+    tbChapter.textContent = panels[i].dataset.chapter || panels[i].dataset.title;
+    tbCount.textContent = String(i+1).padStart(2,"0") + " / " + String(panels.length).padStart(2,"0");
+    prevbtn.disabled = i === 0;
+    nextbtn.disabled = i === panels.length - 1;
+    var active = navItems[i];
+    if (active && active.scrollIntoView) active.scrollIntoView({ block:"nearest" });
+  }
+  setActive(0);
+  current = -1; setActive(0);
+
+  var revealIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in-view"); revealIO.unobserve(e.target); }
+    });
+  }, { root: viewport, threshold:0.08 });
+  panels.forEach(function(p){ revealIO.observe(p); });
+
+  var spyIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        var idx = panels.indexOf(e.target);
+        if (idx > -1) setActive(idx);
+      }
+    });
+  }, { root: viewport, rootMargin:"0px 0px -70% 0px", threshold:0 });
+  panels.forEach(function(p){ spyIO.observe(p); });
+
+  function go(i){
+    i = Math.max(0, Math.min(panels.length - 1, i));
+    panels[i].scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  prevbtn.addEventListener("click", function(){ go(current - 1); });
+  nextbtn.addEventListener("click", function(){ go(current + 1); });
+
+  window.addEventListener("keydown", function(ev){
+    if (["ArrowRight","ArrowDown","PageDown"].indexOf(ev.key) > -1){ ev.preventDefault(); go(current+1); }
+    else if (["ArrowLeft","ArrowUp","PageUp"].indexOf(ev.key) > -1){ ev.preventDefault(); go(current-1); }
+    else if (ev.key === "Home"){ ev.preventDefault(); go(0); }
+    else if (ev.key === "End"){ ev.preventDefault(); go(panels.length-1); }
+  });
+
+  var sidebar = document.getElementById("sidebar");
+  var scrim = document.getElementById("scrim");
+  var menubtn = document.getElementById("menubtn");
+  function openSidebar(){ sidebar.classList.add("open"); scrim.classList.add("open"); }
+  function closeSidebar(){ sidebar.classList.remove("open"); scrim.classList.remove("open"); }
+  menubtn.addEventListener("click", function(){ sidebar.classList.contains("open") ? closeSidebar() : openSidebar(); });
+  scrim.addEventListener("click", closeSidebar);
+})();
+</script>
+</body>
+</html>

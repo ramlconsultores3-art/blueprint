@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blueprint — RAML Consultores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=optional">
+<style>
+:root{
+  --ground:#0b2238; --sheet:#0e2d4a; --sheet-2:#123a60; --ink:#e9f2fa; --ink-soft:#93acc4;
+  --line:rgba(223,238,250,.14); --line-strong:rgba(223,238,250,.34); --cyan:#7fd4e2; --amber:#ffb454;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--ground); color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(0deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px);
+  min-height:100vh;
+}
+h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; margin:0; letter-spacing:.01em;}
+p{margin:0;}
+a{color:inherit; text-decoration:none;}
+::selection{background:var(--amber); color:#16212e;}
+
+.wrap{max-width:1100px; margin:0 auto; padding:clamp(2.4rem,6vw,5rem) clamp(1.4rem,5vw,2.5rem) 4rem;}
+
+.brandmark{display:flex; align-items:baseline; gap:.6rem; font-size:1.15rem; letter-spacing:.1em; text-transform:uppercase; color:var(--amber);}
+.brandmark span{font-family:"IBM Plex Mono",monospace; font-size:.7rem; letter-spacing:.1em; color:var(--ink-soft); text-transform:uppercase;}
+h1.title{font-size:clamp(2rem,5vw,3.2rem); margin-top:.6rem; text-transform:uppercase; max-width:18ch; line-height:1.08;}
+.tagline{font-family:"IBM Plex Mono",monospace; font-size:clamp(.85rem,1.3vw,1rem); color:var(--cyan); margin-top:.8rem;}
+.lede{font-size:1rem; color:var(--ink-soft); max-width:62ch; margin-top:1.1rem; line-height:1.55;}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.1rem; margin-top:2.6rem;}
+.card{
+  display:block; border:1px solid var(--line-strong); background:rgba(223,238,250,.025); padding:1.3rem 1.4rem;
+  position:relative; transition:background .2s ease, transform .2s ease;
+}
+.card::before,.card::after{content:""; position:absolute; width:10px; height:10px; border:0 solid var(--cyan);}
+.card::before{top:-1px; left:-1px; border-top-width:2px; border-left-width:2px;}
+.card::after{bottom:-1px; right:-1px; border-bottom-width:2px; border-right-width:2px;}
+.card:hover{background:rgba(223,238,250,.055); transform:translateY(-2px);}
+.card .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--cyan); display:flex; align-items:center; gap:.5em;}
+.card .eyebrow::before{content:""; width:1.4em; height:1px; background:var(--cyan);}
+.card h2{font-size:1.2rem; margin-top:.55rem; line-height:1.2;}
+.card .meta{font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--ink-soft); margin-top:.5rem; letter-spacing:.02em;}
+.card p.desc{font-size:.88rem; color:var(--ink-soft); margin-top:.7rem; line-height:1.5;}
+.card .open{font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--amber); text-transform:uppercase; letter-spacing:.06em; margin-top:.9rem; display:inline-block;}
+
+.empty{border:1px dashed var(--line-strong); padding:1.6rem; margin-top:2.6rem; color:var(--ink-soft); font-size:.9rem;}
+
+footer{margin-top:3.5rem; border-top:1px solid var(--line); padding-top:1.2rem; font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="brandmark">Blueprint <span>— RAML Consultores</span></p>
+  <h1 class="title">Portafolio de consultorías</h1>
+  <p class="tagline">Presentaciones interactivas, no diapositivas</p>
+  <p class="lede">Cada entrega de consultoría convertida en una página web navegable — identidad visual tipo plano de ingeniería, pensada para compartir con el cliente en vez de un .pptx.</p>
+
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>Todavía no hay blueprints publicados aquí.</p>
+
+  <footer>RAML Consultores · <span id="year"></span></footer>
+</div>
+
+<script>
+// Cada entrega nueva agrega un objeto aquí — no hace falta tocar el HTML de abajo.
+const PROJECTS = [
+  {
+    slug: "emi-modelo-postgrado-investigacion",
+    client: "Escuela Militar de Ingeniería (EMI)",
+    title: "Modelo de Postgrado e Investigación",
+    sub: "Capítulo 1 — Producción de Formación Posgradual e Investigación",
+    date: "2026",
+    desc: "Síntesis interactiva del modelo que integra investigación, posgrado y gestión académica en un solo sistema."
+  }
+];
+
+const grid = document.getElementById('grid');
+const empty = document.getElementById('empty');
+document.getElementById('year').textContent = new Date().getFullYear();
+
+if (PROJECTS.length === 0) {
+  empty.hidden = false;
+} else {
+  PROJECTS.forEach(p => {
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = './' + p.slug + '/';
+    a.innerHTML =
+      '<p class="eyebrow">' + p.client + '</p>' +
+      '<h2>' + p.title + '</h2>' +
+      (p.sub ? '<p class="meta">' + p.sub + '</p>' : '') +
+      '<p class="desc">' + p.desc + '</p>' +
+      '<span class="open">Abrir · ' + p.date + ' →</span>';
+    grid.appendChild(a);
+  });
+}
+</script>
+</body>
+</html>

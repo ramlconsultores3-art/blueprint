@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelo de Negocio EMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=optional">
+<style>
+:root{
+  --ground:#0b2238; --sheet:#0e2d4a; --sheet-2:#123a60; --plate:#eef3f6; --plate-ink:#16212e;
+  --ink:#e9f2fa; --ink-soft:#93acc4; --line:rgba(223,238,250,.14); --line-strong:rgba(223,238,250,.34);
+  --cyan:#7fd4e2; --amber:#ffb454; --white-line:#d8e8f4;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--ground); color:var(--ink); font-family:"IBM Plex Sans", system-ui, sans-serif;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.035) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(0deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, rgba(223,238,250,.075) 0 1px, transparent 1px 72px);
+}
+h1,h2,h3,h4{font-family:"Oswald", "Arial Narrow", sans-serif; font-weight:600; margin:0; text-wrap:balance; letter-spacing:.01em;}
+p{margin:0;}
+ul{margin:0; padding:0;}
+button{font:inherit;}
+::selection{background:var(--amber); color:var(--plate-ink);}
+a{color:var(--cyan);}
+:focus-visible{outline:1.5px solid var(--cyan); outline-offset:2px;}
+
+.eyebrow{font-family:"IBM Plex Mono", monospace; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--cyan); display:flex; align-items:center; gap:.6em;}
+.eyebrow::before{content:""; width:1.6em; height:1px; background:var(--cyan);}
+
+/* ===== app shell ===== */
+.app{display:grid; grid-template-columns:272px 1fr; height:100vh; overflow:hidden;}
+.sidebar{background:var(--sheet); border-right:1px solid var(--line-strong); overflow-y:auto; display:flex; flex-direction:column;}
+.sidebar-head{padding:1.4rem 1.3rem 1.1rem; border-bottom:1px solid var(--line);}
+.sidebar-head .mark{font-family:"IBM Plex Mono",monospace; font-size:.64rem; letter-spacing:.16em; color:var(--cyan); text-transform:uppercase;}
+.sidebar-head h1{font-size:1.15rem; line-height:1.24; margin-top:.5rem; text-transform:uppercase;}
+.sidebar-head .sub{font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-soft); margin-top:.6rem; letter-spacing:.02em;}
+.sidebar-head .back-link{display:inline-flex; align-items:center; gap:.45em; margin-top:1rem; font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase; color:var(--cyan); text-decoration:none; border:1px solid var(--line-strong); padding:.4rem .7rem;}
+.sidebar-head .back-link:hover{color:var(--amber); border-color:var(--amber);}
+.nav{flex:1; padding:.6rem 0 1.4rem;}
+.nav-group{margin-top:.85rem;}
+.nav-group .group-label{padding:0 1.3rem; font-family:"IBM Plex Mono",monospace; font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:.35rem; line-height:1.3;}
+.nav-item{display:flex; gap:.6rem; align-items:baseline; width:100%; text-align:left; background:none; border:none; border-left:2px solid transparent; color:var(--ink-soft); padding:.42rem 1.3rem; font-size:.8rem; cursor:pointer;}
+.nav-item .n{font-family:"IBM Plex Mono",monospace; font-size:.68rem; color:var(--ink-soft); flex:none; width:1.5rem;}
+.nav-item:hover{color:var(--ink); background:rgba(223,238,250,.04);}
+.nav-item.active{color:var(--ink); border-left-color:var(--amber); background:rgba(223,238,250,.06);}
+.nav-item.active .n{color:var(--amber);}
+
+/* ===== main / title block ===== */
+.main{display:flex; flex-direction:column; height:100vh; overflow:hidden;}
+.viewport{flex:1; overflow-y:auto; padding:0 clamp(1.6rem,5vw,4.2rem);}
+.panel{max-width:1080px; margin:0 auto; padding:3.4rem 0; border-bottom:1px solid var(--line); scroll-margin-top:1rem; opacity:0; transform:translateY(16px); transition:opacity .55s ease, transform .55s ease;}
+.panel.in-view{opacity:1; transform:none;}
+.panel:first-child{padding-top:2.2rem;}
+.panel:last-child{border-bottom:none; padding-bottom:4.5rem;}
+@media (prefers-reduced-motion:reduce){.panel{opacity:1; transform:none; transition:none;}}
+
+.titleblock{flex:none; display:flex; align-items:stretch; border-top:1px solid var(--line-strong); background:var(--sheet); font-family:"IBM Plex Mono",monospace; font-size:.68rem;}
+.titleblock .cell{padding:.5rem .9rem; border-right:1px solid var(--line); display:flex; flex-direction:column; justify-content:center; min-width:0;}
+.titleblock .cell span{color:var(--ink-soft); text-transform:uppercase; font-size:.58rem; letter-spacing:.09em;}
+.titleblock .cell b{color:var(--ink); font-size:.76rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.titleblock .spacer{flex:1;}
+.titleblock .navbtn{background:none; border:none; border-left:1px solid var(--line); color:var(--ink); padding:0 1.1rem; cursor:pointer; letter-spacing:.08em;}
+.titleblock .navbtn:hover{background:rgba(223,238,250,.07); color:var(--amber);}
+.titleblock .navbtn:disabled{opacity:.3; cursor:default;}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{position:fixed; inset:0 auto 0 0; width:82vw; max-width:300px; z-index:60; transform:translateX(-100%); transition:transform .25s ease; box-shadow:0 0 40px rgba(0,0,0,.5);}
+  .sidebar.open{transform:translateX(0);}
+  .menubtn{display:flex;}
+  .titleblock .cell.hide-sm{display:none;}
+}
+.menubtn{display:none; align-items:center; gap:.5rem; background:none; border:none; border-right:1px solid var(--line); color:var(--ink); font-family:"IBM Plex Mono",monospace; font-size:.72rem; padding:0 1rem; cursor:pointer;}
+.menubtn .bars{width:16px; height:11px; position:relative;}
+.menubtn .bars span{position:absolute; left:0; right:0; height:1.4px; background:var(--ink);}
+.menubtn .bars span:nth-child(1){top:0;} .menubtn .bars span:nth-child(2){top:5px;} .menubtn .bars span:nth-child(3){top:10px;}
+.scrim{display:none;}
+@media (max-width:860px){.scrim.open{display:block; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:55;}}
+
+/* ===== components ===== */
+.stack{display:flex; flex-direction:column; gap:1.8rem;}
+h2.panel-title{font-size:clamp(1.5rem,2.8vw,2.3rem); margin-top:.5rem; line-height:1.14;}
+.lede{font-size:clamp(.96rem,1.2vw,1.08rem); color:var(--ink-soft); max-width:66ch; margin-top:1rem; line-height:1.58;}
+
+.grid{display:grid; gap:1rem;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+@media (max-width:800px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+
+.frame{border:1px solid var(--line-strong); background:rgba(223,238,250,.025); padding:1.15rem 1.3rem; position:relative;}
+.frame::before,.frame::after{content:""; position:absolute; width:9px; height:9px; border:0 solid var(--cyan);}
+.frame::before{top:-1px; left:-1px; border-top-width:2px; border-left-width:2px;}
+.frame::after{bottom:-1px; right:-1px; border-bottom-width:2px; border-right-width:2px;}
+.frame.amber::before,.frame.amber::after{border-color:var(--amber);}
+.frame h3{font-size:1rem; color:var(--ink); text-transform:uppercase; letter-spacing:.02em; margin-bottom:.5rem;}
+.frame p{color:var(--ink-soft); font-size:.89rem; line-height:1.52;}
+.frame ul{margin-top:.55rem; padding-left:1.05rem; color:var(--ink-soft); font-size:.87rem; line-height:1.55; list-style:square;}
+.frame ul li::marker{color:var(--cyan);}
+.frame .small{font-size:.78rem; color:var(--ink-soft); margin-top:.5rem; font-style:italic;}
+
+.tag{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.65rem; text-transform:uppercase; letter-spacing:.04em; color:var(--cyan); border:1px solid var(--line-strong); padding:.18rem .5rem; margin:.15rem .3rem .15rem 0;}
+.tag-row{margin-top:.7rem;}
+
+.quote{border-left:2px solid var(--amber); padding-left:1.2rem; margin:1rem 0; font-size:1.1rem; font-style:italic; color:var(--ink);}
+.quote cite{display:block; font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:.72rem; color:var(--ink-soft); margin-top:.5rem; letter-spacing:.03em;}
+
+.stat{display:flex; flex-direction:column; border-top:1px solid var(--line-strong); padding-top:.6rem;}
+.stat b{font-family:"IBM Plex Mono",monospace; font-size:1.4rem; color:var(--amber); font-variant-numeric:tabular-nums;}
+.stat span{font-size:.76rem; color:var(--ink-soft);}
+
+table{border-collapse:collapse; width:100%; font-size:.84rem;}
+th,td{padding:.5rem .65rem; border:1px solid var(--line); text-align:left; vertical-align:top; color:var(--ink-soft);}
+td b{color:var(--ink);}
+th{background:var(--sheet-2); color:var(--ink); font-weight:600; font-family:"IBM Plex Mono",monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.04em;}
+.table-wrap{overflow-x:auto; border:1px solid var(--line-strong);}
+.table-wrap table{border:none;}
+
+/* cover */
+.cover{display:flex; flex-direction:column; gap:1.5rem;}
+.cover .brandmark{display:flex; align-items:baseline; gap:.6rem; font-family:"Oswald",sans-serif; font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; color:var(--amber);}
+.cover .brandmark span{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.1em; color:var(--ink-soft); text-transform:uppercase;}
+.cover .crest{font-family:"IBM Plex Mono",monospace; font-size:.76rem; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft);}
+.cover .credit{font-family:"IBM Plex Mono",monospace; font-size:.76rem; color:var(--ink-soft); letter-spacing:.03em; border-top:1px solid var(--line); padding-top:.9rem; margin-top:.2rem;}
+.cover .credit b{color:var(--ink); font-weight:500;}
+.cover h2{font-size:clamp(2rem,5vw,3.4rem); line-height:1.07; text-transform:uppercase; max-width:20ch;}
+.cover .sub{font-family:"IBM Plex Mono",monospace; font-size:clamp(.9rem,1.4vw,1.05rem); color:var(--cyan); letter-spacing:.02em;}
+.cover .meta{display:flex; flex-wrap:wrap; gap:.8rem 1.6rem; font-family:"IBM Plex Mono",monospace; font-size:.76rem; color:var(--ink-soft); margin-top:.4rem;}
+.cover .meta span{border-left:2px solid var(--amber); padding-left:.6rem;}
+.cover .plate{margin-top:1rem; border:1px solid var(--line-strong); max-width:460px;}
+.cover .plate-head{display:flex; justify-content:space-between; padding:.6rem .9rem; border-bottom:1px solid var(--line); font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em;}
+.cover .plate ul{padding:.8rem 1.1rem 1rem; list-style:none;}
+.cover .plate li{display:flex; justify-content:space-between; gap:1rem; padding:.3rem 0; font-size:.84rem; color:var(--ink-soft); border-top:1px dashed var(--line);}
+.cover .plate li:first-child{border-top:none;}
+.cover .plate li b{color:var(--ink); font-weight:500;}
+.scrollcue{margin-top:.6rem; display:flex; flex-direction:column; align-items:center; gap:.4rem; font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); width:fit-content;}
+.scrollcue .chev{width:8px; height:8px; border-right:1.5px solid var(--cyan); border-bottom:1.5px solid var(--cyan); transform:rotate(45deg);}
+@media (prefers-reduced-motion:no-preference){.scrollcue{animation:bob 2.2s ease-in-out infinite;}}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+/* toc */
+.toc-card{display:flex; gap:1.1rem; align-items:flex-start;}
+.toc-card .num{font-family:"IBM Plex Mono",monospace; font-size:1.4rem; color:var(--amber); font-weight:600; flex:none;}
+.toc-card h3{font-size:1.02rem; color:var(--ink); text-transform:uppercase; letter-spacing:.02em; margin-bottom:.3rem;}
+.toc-card p{font-size:.86rem; color:var(--ink-soft); line-height:1.5;}
+
+/* step flow (pasos / líneas de acción numeradas) */
+.steps{display:flex; flex-direction:column; gap:.7rem;}
+.step-row{display:flex; gap:1rem; align-items:flex-start; border:1px solid var(--line-strong); padding:.9rem 1.1rem; background:rgba(223,238,250,.02);}
+.step-row .num{font-family:"IBM Plex Mono",monospace; font-size:1.2rem; color:var(--amber); flex:none; min-width:1.6rem;}
+.step-row div h4{font-size:.92rem; color:var(--ink); text-transform:uppercase; letter-spacing:.02em;}
+.step-row div p{font-size:.86rem; color:var(--ink-soft); margin-top:.3rem; line-height:1.5;}
+
+/* business model canvas grid */
+.canvas-wrap{border:1px solid var(--line-strong); background:var(--line-strong); display:grid; gap:1px; overflow-x:auto;}
+.canvas{display:grid; grid-template-columns:repeat(6,minmax(140px,1fr)); grid-template-areas:
+  "partners activities value value relations segments"
+  "partners resources  value value channels  segments"
+  "cost cost cost revenue revenue revenue";
+  gap:1px; background:var(--line-strong); min-width:760px;}
+.canvas .cell{background:var(--sheet); padding:.85rem .95rem; display:flex; flex-direction:column; gap:.4rem;}
+.canvas .cell h4{font-family:"IBM Plex Mono",monospace; font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; color:var(--cyan);}
+.canvas .cell ul{list-style:none; display:flex; flex-direction:column; gap:.3rem;}
+.canvas .cell li{font-size:.76rem; color:var(--ink-soft); line-height:1.35; padding-left:.7rem; position:relative;}
+.canvas .cell li::before{content:"—"; position:absolute; left:0; color:var(--line-strong);}
+.canvas .partners{grid-area:partners;} .canvas .activities{grid-area:activities;} .canvas .resources{grid-area:resources;}
+.canvas .value{grid-area:value; background:var(--sheet-2); border-left:2px solid var(--amber); border-right:2px solid var(--amber);}
+.canvas .relations{grid-area:relations;} .canvas .channels{grid-area:channels;} .canvas .segments{grid-area:segments;}
+.canvas .cost{grid-area:cost;} .canvas .revenue{grid-area:revenue;}
+.canvas-cap{font-family:"IBM Plex Mono",monospace; font-size:.68rem; color:var(--ink-soft); margin-top:.7rem; letter-spacing:.02em;}
+@media (max-width:860px){.canvas{min-width:640px;}}
+
+/* pricing / decision matrix cards */
+.matrix-card{border:1px solid var(--line-strong); padding:1rem 1.15rem; background:rgba(223,238,250,.02);}
+.matrix-card .head{display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin-bottom:.6rem;}
+.matrix-card .head b{font-size:.9rem; color:var(--ink); text-transform:uppercase; letter-spacing:.02em;}
+.matrix-card .strategy{font-family:"IBM Plex Mono",monospace; font-size:.68rem; color:var(--amber); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.5rem;}
+.matrix-card .rows{display:grid; grid-template-columns:1fr 1fr; gap:.7rem;}
+@media (max-width:700px){.matrix-card .rows{grid-template-columns:1fr;}}
+.matrix-card .rows div{border-top:1px solid var(--line); padding-top:.5rem;}
+.matrix-card .rows div span{font-family:"IBM Plex Mono",monospace; font-size:.62rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:.2rem;}
+.matrix-card .rows div p{font-size:.82rem; color:var(--ink-soft); line-height:1.45;}
+
+.closing-rule{width:60px; height:2px; background:var(--amber); margin:1.3rem 0;}
+.source-note{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <p class="mark">EMI · Documento normativo</p>
+      <h1>Modelo de Negocio y Sostenibilidad</h1>
+      <p class="sub">Capítulo 2 — Modelo de Postgrado e Investigación</p>
+      <a class="back-link" href="https://ramlconsultores3-art.github.io/blueprint/">← Portafolio</a>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <div class="viewport" id="viewport">
+
+      <!-- 0 PORTADA -->
+      <section class="panel" id="sec-0" data-title="Portada" data-chapter="Portada">
+        <div class="cover">
+          <p class="brandmark">Blueprint <span>— RAML Consultores</span></p>
+          <p class="crest">Escuela Militar de Ingeniería · "Mcal. Antonio José de Sucre"</p>
+          <h2>Modelo de Negocio y Sostenibilidad</h2>
+          <p class="sub">CAPÍTULO 2 — DEL MODELO DE POSTGRADO E INVESTIGACIÓN</p>
+          <div class="meta">
+            <span>Fase 2 — Formulación del Modelo</span>
+            <span>Documento de trabajo — borrador en redacción</span>
+            <span>2026</span>
+          </div>
+          <div class="plate">
+            <div class="plate-head"><span>Lámina</span><span>00 / 25</span></div>
+            <ul>
+              <li><b>01</b> Modelo de Negocio de la Oferta Posgradual</li>
+              <li><b>02</b> Modelo de Financiación de la Investigación</li>
+              <li><b>03</b> Costeo, Precio y Sostenibilidad Financiera</li>
+              <li><b>04</b> Gestión Administrativa de la Investigación</li>
+            </ul>
+          </div>
+          <p class="credit">Consultor: <b>Ramiro Abdón Mamani Laime</b> · 2026</p>
+          <div class="scrollcue"><span>desplazar</span><span class="chev"></span></div>
+        </div>
+      </section>
+
+      <!-- 1 ÍNDICE -->
+      <section class="panel" id="sec-1" data-title="Mapa del capítulo" data-chapter="Índice">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Mapa del capítulo</p>
+            <h2 class="panel-title">Cómo se sostiene la oferta posgradual</h2>
+            <p class="lede">El Capítulo 1 fijó la unidad dual investigación–formación. Este capítulo traduce esa arquitectura al lenguaje del negocio y de las finanzas: un Canvas distinto para cada faceta, un modelo de financiación para la investigación, y un sistema único de costeo, precio y sostenibilidad para ambas.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame toc-card"><span class="num">01</span><div><h3>Modelo de Negocio</h3><p>Business Model Canvas para el Posgrado de Formación; Mission Model Canvas para el Posgrado de Investigación.</p></div></div>
+            <div class="frame toc-card"><span class="num">02</span><div><h3>Financiación de la Investigación</h3><p>Fondo Institucional, flujo circular virtuoso, fondos externos, financiamiento por desempeño.</p></div></div>
+            <div class="frame toc-card amber"><span class="num">03</span><div><h3>Costeo, Precio y Sostenibilidad</h3><p>Clasificación de costos, remuneración diferenciada, precio, descuentos, punto de equilibrio, portafolio, comercialización.</p></div></div>
+            <div class="frame toc-card"><span class="num">04</span><div><h3>Gestión Administrativa</h3><p>Ejecución presupuestaria, trazabilidad de fuentes, integración de las cinco sedes, reporting.</p></div></div>
+          </div>
+          <p class="source-note">24 cuadros normativos, dos lienzos Canvas y 20+ fuentes académicas sostienen el desarrollo del capítulo.</p>
+        </div>
+      </section>
+
+      <!-- 2 FUNDAMENTO MODELO DE NEGOCIO -->
+      <section class="panel" id="sec-2" data-title="Fundamento del modelo de negocio" data-chapter="1.1.1–1.1.3 — Fundamento">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.1 – 1.1.3 — Fundamento teórico</p>
+            <h2 class="panel-title">Un lienzo distinto para cada lógica de valor</h2>
+            <p class="lede">Osterwalder (2004) define el modelo de negocio como la arquitectura con la que una organización crea, entrega y captura valor. Teece (2010) separa ese modelo de la estrategia: el modelo explica cómo se genera valor hoy; la estrategia, cómo se sostiene esa posición en el tiempo. El Posgrado de Formación y el Posgrado de Investigación comparten la misma institución, pero no la misma lógica de captura de valor — y por eso no comparten la misma herramienta.</p>
+          </div>
+          <blockquote class="quote">«las organizaciones que cuentan con flujos de ingreso de un cliente deben seguir utilizando el Business Model Canvas; el Mission Model Canvas fue concebido para organizaciones que cuentan con presupuestos —en lugar de ingresos de clientes— que deben equilibrarse con su estructura de costos»<cite>Alexander Osterwalder, citado en Blank (2016)</cite></blockquote>
+          <div class="grid grid-2">
+            <div class="frame"><h3>Posgrado de Formación</h3><p>Capta un ingreso directo del posgraduante que debe cubrir su costo y, cuando corresponde, generar un margen. Se gobierna por el <b style="color:var(--ink)">Business Model Canvas</b> de Osterwalder y Pigneur (2010).</p></div>
+            <div class="frame amber"><h3>Posgrado de Investigación</h3><p>Se sostiene con un presupuesto institucional, no con ingreso de venta. Se gobierna por el <b style="color:var(--ink)">Mission Model Canvas</b> de Blank (2016), adaptado para organizaciones orientadas a misión.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 BMC: SEGMENTOS -->
+      <section class="panel" id="sec-3" data-title="Segmentos de clientes" data-chapter="1.1.4.1.1 — Cuadro 2.1">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.4.1.1 — Cuadro 2.1</p>
+            <h2 class="panel-title">Tres segmentos, tres propuestas distintas</h2>
+            <p class="lede">Ningún modelo de negocio puede diseñarse para satisfacer a la totalidad de un mercado sin diferenciación (Osterwalder &amp; Pigneur, 2010). El personal militar y civil de la EMI no es un cuarto segmento: es un atributo transversal con descuento, no una propuesta de valor distinta.</p>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Profesionales en ejercicio</h3><p>Verificación rápida y creíble de una competencia puntual, sin buscar grado.</p><p class="small">Ej.: actualización en BIM de un ingeniero civil en ejercicio.</p></div>
+            <div class="frame"><h3>Buscan grado profesionalizante</h3><p>Profundización disciplinar reconocida con un grado formal del SUB.</p><p class="small">Ej.: oficial que necesita un Magíster para ascender.</p></div>
+            <div class="frame"><h3>Empresas (matrícula corporativa)</h3><p>Retorno verificable sobre la formación financiada a su personal.</p><p class="small">Ej.: convenio que matricula a 10 ingenieros en una cohorte.</p></div>
+          </div>
+          <div class="frame amber"><h3>Personal militar y civil de la EMI — atributo transversal</h3><p>Accede a cualquiera de los tres segmentos con el régimen de descuentos fijado más adelante (apartado 3.3) — no es una propuesta de valor aparte.</p></div>
+        </div>
+      </section>
+
+      <!-- 4 BMC: PROPUESTA DE VALOR -->
+      <section class="panel" id="sec-4" data-title="Propuesta de valor" data-chapter="1.1.4.1.2 — Cuadro 2.2">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.4.1.2 — Cuadro 2.2</p>
+            <h2 class="panel-title">Cuatro elementos, anclados en el Capítulo 1</h2>
+            <p class="lede">De la tipología de Osterwalder y Pigneur (2010) —novedad, desempeño, personalización, diseño, precio, reducción de costo y de riesgo, accesibilidad, conveniencia— el Posgrado de Formación de la EMI construye su propuesta sobre cuatro.</p>
+          </div>
+          <div class="grid grid-4">
+            <div class="frame"><h3>Novedad</h3><p>"Banca académica": escalera de 5 niveles de credenciales apilables. Se avanza por etapas certificadas, sin empezar de cero.</p></div>
+            <div class="frame"><h3>Conveniencia</h3><p>Cuenta de Ahorro Académico y Sistema de Compensación: custodia verificable del avance ya logrado.</p></div>
+            <div class="frame"><h3>Accesibilidad</h3><p>Presencial, virtual, blended, sincrónica y MOOC: resuelve el equilibrio territorial entre las cinco sedes.</p></div>
+            <div class="frame"><h3>Desempeño</h3><p>Oferta anclada en líneas de investigación institucionales activas, no contenido genérico.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 BMC: CANALES + RELACIÓN -->
+      <section class="panel" id="sec-5" data-title="Canales y relación con clientes" data-chapter="1.1.4.1.3–1.1.4.1.4 — Cuadros 2.3 y 2.4">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.4.1.3 – 1.1.4.1.4 — Cuadros 2.3 y 2.4</p>
+            <h2 class="panel-title">Cinco fases, tres tipos de relación</h2>
+            <p class="lede">Un canal bien diseñado cubre cinco fases: dar a conocer la oferta, ayudar a evaluarla, permitir la compra, entregar el valor y sostener la posventa (Osterwalder &amp; Pigneur, 2010). El catálogo completo de diez canales se desarrolla más adelante (apartado 3.6); aquí se fija qué fase cubre cada uno.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fase</th><th>Canales que la cubren</th></tr></thead>
+              <tbody>
+                <tr><td>1. Conocimiento de la oferta</td><td>Ferias de educación ejecutiva · venta social docente</td></tr>
+                <tr><td>2. Ayudar a evaluarla</td><td>Módulos de prueba gratuita (freemium) · mercadeo entrante (inbound/CRM)</td></tr>
+                <tr><td>3. Permitir la compra</td><td>Inside sales · convenios B2B corporativos</td></tr>
+                <tr><td>4. Entregar el valor</td><td>Prestación directa del servicio formativo</td></tr>
+                <tr><td>5. Posventa</td><td>Suscripción corporativa anual · referidos entre egresados (alumni referral)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="lede" style="margin-top:0;">Dos canales operan de forma transversal: <em>brokerage</em> (sustituye a la EMI en la fase 3 a cambio de comisión) y el <em>lead scoring</em> por IA (prioriza automáticamente el seguimiento en la fase 2).</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tipo de relación</th><th>Segmento</th><th>Mecanismo</th></tr></thead>
+              <tbody>
+                <tr><td><b>Asistencia personal dedicada</b></td><td>Empresas (corporativo)</td><td>Gestor de cuenta asignado</td></tr>
+                <tr><td><b>Servicios automatizados</b></td><td>Profesionales y Formación Académica</td><td>Plataforma CRM</td></tr>
+                <tr><td><b>Comunidad</b></td><td>Transversal</td><td>Programa de referidos (alumni referral)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 BMC: INFRAESTRUCTURA -->
+      <section class="panel" id="sec-6" data-title="Recursos, actividades y socios clave" data-chapter="1.1.4.2 — Cuadros 2.5, 2.6, 2.7">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.4.2 — Frente de infraestructura</p>
+            <h2 class="panel-title">Lo que sostiene la propuesta por dentro</h2>
+            <p class="lede">Los tres bloques que miran hacia el interior de la institución: qué recursos, qué actividades y qué alianzas hacen posible producir y entregar la propuesta de valor ya determinada.</p>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Recursos clave</h3><ul><li>Humano: claustro docente-investigador (4 categorías)</li><li>Físico: aulas, laboratorios, plataforma de gestión</li><li>Intelectual: catálogo ya producido de microcredenciales</li></ul></div>
+            <div class="frame"><h3>Actividades clave</h3><ul><li>Diseño macro-curricular retrospectivo</li><li>Producción micro-curricular (4 fases)</li><li>Gestión de la plataforma de "banca académica"</li></ul></div>
+            <div class="frame"><h3>Socios clave</h3><ul><li>Empresas, gremios, FF.AA. y administración pública</li><li>Plataformas tecnológicas MOOC</li><li>Los propios Departamentos de investigación</li></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 BMC: INGRESOS Y COSTOS -->
+      <section class="panel" id="sec-7" data-title="Fuentes de ingresos y estructura de costos" data-chapter="1.1.4.3 — Cuadro 2.8">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.1.4.3 — Frente de viabilidad financiera</p>
+            <h2 class="panel-title">Un modelo orientado al valor, no al costo mínimo</h2>
+            <p class="lede">El Posgrado de Formación combina tres mecanismos de ingreso, y es, por su propuesta de valor anclada en producción propia, un modelo orientado al valor y no a la minimización del costo (Osterwalder &amp; Pigneur, 2010) — sin eximirse, por ello, de clasificar con rigor sus costos.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Mecanismo</th><th>Quién paga</th><th>Ejemplo</th></tr></thead>
+              <tbody>
+                <tr><td>Cuota de uso</td><td>El posgraduante, por unidad cursada</td><td>Matrícula y colegiatura de un Diplomado</td></tr>
+                <tr><td>Cuota de suscripción</td><td>La empresa, anual y recurrente</td><td>Suscripción corporativa con varios cupos</td></tr>
+                <tr><td>Comisión de intermediación</td><td>La EMI, al intermediario (brokerage)</td><td>Pago por cada matriculado captado</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="lede" style="margin-top:0;">Las economías de escala se logran reutilizando microcredenciales y materiales ya producidos entre cohortes — gestión "centrada en la misión, inteligente en el mercado y consciente del margen" (Massy, 2016).</p>
+        </div>
+      </section>
+
+      <!-- 8 BMC COMPLETO -->
+      <section class="panel" id="sec-8" data-title="Canvas completo — Posgrado de Formación" data-chapter="Ilustración 1 — Business Model Canvas">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Ilustración 1 — síntesis</p>
+            <h2 class="panel-title">Business Model Canvas del Posgrado de Formación</h2>
+            <p class="lede">Los nueve bloques recién determinados, en el formato de lienzo visual que Osterwalder y Pigneur (2010) diseñaron para leer de un vistazo la lógica completa de creación, entrega y captura de valor.</p>
+          </div>
+          <div class="canvas-wrap">
+            <div class="canvas">
+              <div class="cell partners"><h4>Socios clave</h4><ul><li>Empresas, gremios, FF.AA.</li><li>Plataformas MOOC</li><li>Departamentos de investigación</li></ul></div>
+              <div class="cell activities"><h4>Actividades clave</h4><ul><li>Diseño macro-curricular</li><li>Producción micro-curricular</li></ul></div>
+              <div class="cell resources"><h4>Recursos clave</h4><ul><li>Claustro docente-investigador</li><li>Catálogo ya producido</li></ul></div>
+              <div class="cell value"><h4>Propuesta de valor</h4><ul><li>Novedad: banca académica</li><li>Conveniencia</li><li>Accesibilidad</li><li>Desempeño</li></ul></div>
+              <div class="cell relations"><h4>Relación con clientes</h4><ul><li>Asistencia dedicada</li><li>Servicios automatizados</li></ul></div>
+              <div class="cell channels"><h4>Canales</h4><ul><li>Inside sales · B2B</li><li>CRM · freemium</li></ul></div>
+              <div class="cell segments"><h4>Segmentos de clientes</h4><ul><li>Profesionales en ejercicio</li><li>Buscan grado profesionalizante</li><li>Empresas (corporativo)</li></ul></div>
+              <div class="cell cost"><h4>Estructura de costos</h4><ul><li>Personal docente e incentivos · infraestructura y depreciación · costos indirectos</li></ul></div>
+              <div class="cell revenue"><h4>Fuentes de ingresos</h4><ul><li>Cuota de uso · suscripción corporativa · comisión de intermediación</li></ul></div>
+            </div>
+          </div>
+          <p class="canvas-cap">Fuente: elaboración propia a partir de Osterwalder y Pigneur (2010) y de lo fundamentado en este capítulo.</p>
+        </div>
+      </section>
+
+      <!-- 9 MMC FUNDAMENTO -->
+      <section class="panel" id="sec-9" data-title="Mission Model Canvas: fundamento" data-chapter="1.2.1 — Adaptación de Blank">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.1 — Fundamento</p>
+            <h2 class="panel-title">Cinco bloques renombrados, cuatro intactos</h2>
+            <p class="lede">Blank (2016) desarrolló el Mission Model Canvas para el curso «Hacking for Defense» de Stanford, al resolver cómo aplicar el Business Model Canvas a organizaciones de defensa e inteligencia que no buscan ingreso, sino movilizar un presupuesto para generar valor a sus beneficiarios — exactamente la situación del Posgrado de Investigación.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame amber">
+              <h3>Bloques que cambian de nombre</h3>
+              <ul>
+                <li>Segmentos de clientes → <b style="color:var(--ink)">Beneficiarios</b></li>
+                <li>Canales → <b style="color:var(--ink)">Despliegue</b></li>
+                <li>Relación con clientes → <b style="color:var(--ink)">Apoyo y legitimación</b></li>
+                <li>Fuentes de ingresos → <b style="color:var(--ink)">Logro de la Misión</b></li>
+                <li>Estructura de costos → <b style="color:var(--ink)">Presupuesto de Misión</b></li>
+              </ul>
+            </div>
+            <div class="frame">
+              <h3>Bloques que no cambian</h3>
+              <p>Propuesta de valor, Recursos clave, Actividades clave y Socios clave: la lógica de qué se ofrece, con qué, mediante qué actividades y con qué aliados es la misma para una organización de misión que para una de ingresos (Blank, 2016).</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 MMC: BENEFICIARIOS + VALOR -->
+      <section class="panel" id="sec-10" data-title="Beneficiarios y propuesta de valor" data-chapter="1.2.2.1.1–2 — Cuadros 2.9 y 2.10">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.2.1.1 – 1.2.2.1.2 — Cuadros 2.9 y 2.10</p>
+            <h2 class="panel-title">Una cadena de beneficiarios, no un cliente único</h2>
+            <p class="lede">Análogo al caso de defensa de Blank (2016): el Posgrado de Investigación no entrega valor a un solo destinatario, sino a una cadena de actores de naturaleza distinta.</p>
+          </div>
+          <div class="grid grid-4">
+            <div class="frame"><h3>Comunidad científica</h3><p>Producción indexada validada por revisión de pares.</p></div>
+            <div class="frame"><h3>Estado y sociedad</h3><p>Conocimiento aplicado a una necesidad real del país.</p></div>
+            <div class="frame"><h3>La propia institución</h3><p>Reputación y posicionamiento en rankings.</p></div>
+            <div class="frame"><h3>Investigadores en formación</h3><p>Su propia formación como futuros investigadores sénior.</p></div>
+          </div>
+          <div class="frame amber"><h3>Propuesta de valor — sin cambios de bloque</h3><p>Generación de conocimiento científico original (teoría, metodología, innovación verificable) + formación de investigadores capaces de producirlo — materializada en publicaciones indexadas y, donde corresponda, patentes; nunca en la sola acumulación de créditos.</p></div>
+        </div>
+      </section>
+
+      <!-- 11 MMC: DESPLIEGUE + APOYO -->
+      <section class="panel" id="sec-11" data-title="Despliegue y apoyo institucional" data-chapter="1.2.2.1.3–4 — Cuadros 2.11 y 2.12">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.2.1.3 – 1.2.2.1.4 — Cuadros 2.11 y 2.12</p>
+            <h2 class="panel-title">Tres vías de despliegue, tres pasos de legitimación</h2>
+            <p class="lede">El conocimiento producido no se despliega por un canal comercial, y ninguna Maestría Científica o Doctorado se sostiene sin un respaldo institucional previo — que siempre antecede a su apertura, nunca a la inversa.</p>
+          </div>
+          <div class="tag-row">
+            <span class="tag">Publicación indexada con revisión por pares</span>
+            <span class="tag">Transferencia tecnológica (spin-offs)</span>
+            <span class="tag">Colaboración científica internacional</span>
+          </div>
+          <div class="steps" style="margin-top:.6rem;">
+            <div class="step-row"><span class="num">1</span><div><h4>Validación técnica y normativa</h4><p>La Dirección Nacional de Investigación y Posgrado (DNIP) confirma coherencia normativa y de política científica.</p></div></div>
+            <div class="step-row"><span class="num">2</span><div><h4>Aprobación</h4><p>El Consejo Superior Académico aprueba, con informe del Consejo Nacional de Investigación y Posgrado (CNIP).</p></div></div>
+            <div class="step-row"><span class="num">3</span><div><h4>Registro</h4><p>Se registra ante el Comité Ejecutivo de la Universidad Boliviana (CEUB) para su promoción y difusión nacional.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 MMC: INFRAESTRUCTURA -->
+      <section class="panel" id="sec-12" data-title="Recursos, actividades y socios (investigación)" data-chapter="1.2.2.2 — Cuadros 2.13, 2.14, 2.15">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.2.2 — Frente de infraestructura</p>
+            <h2 class="panel-title">La misma lógica, sin cambio de bloque</h2>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Recursos clave</h3><ul><li>Claustro docente-investigador</li><li>Institutos, centros y grupos</li><li>Catálogo de líneas activas</li></ul></div>
+            <div class="frame"><h3>Actividades clave</h3><ul><li>Protocolo de producción científica (6 etapas)</li><li>Proceso formativo del investigador</li><li>Evaluación periódica de líneas (cada 3 años)</li></ul></div>
+            <div class="frame"><h3>Socios clave</h3><ul><li>Investigadores Asociados externos</li><li>Instituciones extranjeras</li><li>Entidades de fondos concursables</li></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 MMC: LOGRO + PRESUPUESTO -->
+      <section class="panel" id="sec-13" data-title="Logro de la misión y presupuesto" data-chapter="1.2.2.3 — Cuadros 2.16 y 2.17">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">1.2.2.3 — Frente de viabilidad de la misión</p>
+            <h2 class="panel-title">Se mide en producción, no en ingreso</h2>
+            <p class="lede">A diferencia del margen acumulado que gobierna al Posgrado de Formación, una línea de investigación se mantiene vigente mientras su programa sea progresivo — con independencia de cualquier consideración de ingreso o costo (evaluación lakatosiana, Anexo 2).</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame"><h3>Logro de la misión</h3><ul><li>Producción científica verificable (publicaciones indexadas)</li><li>Posicionamiento institucional en rankings (QS)</li><li>Vigencia de la línea: evaluación cada 3 años</li></ul></div>
+            <div class="frame amber"><h3>Presupuesto de misión</h3><ul><li>Fondo Institucional de Investigación</li><li>Fondos concursables externos</li><li>Financiamiento ligado a desempeño</li></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 MMC COMPLETO -->
+      <section class="panel" id="sec-14" data-title="Canvas completo — Posgrado de Investigación" data-chapter="Ilustración 2 — Mission Model Canvas">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Ilustración 2 — síntesis</p>
+            <h2 class="panel-title">Mission Model Canvas del Posgrado de Investigación</h2>
+            <p class="lede">Los nueve bloques recién determinados, con la nomenclatura que Blank (2016) adapta para organizaciones orientadas a misión.</p>
+          </div>
+          <div class="canvas-wrap">
+            <div class="canvas">
+              <div class="cell partners"><h4>Socios clave</h4><ul><li>Investigadores Asociados externos</li><li>Instituciones extranjeras</li><li>Fondos concursables</li></ul></div>
+              <div class="cell activities"><h4>Actividades clave</h4><ul><li>Protocolo de producción científica</li><li>Evaluación periódica de líneas</li></ul></div>
+              <div class="cell resources"><h4>Recursos clave</h4><ul><li>Claustro docente-investigador</li><li>Institutos, centros y grupos</li></ul></div>
+              <div class="cell value"><h4>Propuesta de valor</h4><ul><li>Generación de conocimiento original</li><li>Formación de investigadores</li></ul></div>
+              <div class="cell relations"><h4>Apoyo y legitimación</h4><ul><li>Validación técnica (DNIP)</li><li>Aprobación (CSA/CNIP)</li></ul></div>
+              <div class="cell channels"><h4>Despliegue</h4><ul><li>Publicación indexada</li><li>Spin-offs · colaboración internacional</li></ul></div>
+              <div class="cell segments"><h4>Beneficiarios</h4><ul><li>Comunidad científica</li><li>Estado y sociedad</li><li>La institución · investigadores en formación</li></ul></div>
+              <div class="cell cost"><h4>Presupuesto de misión</h4><ul><li>Fondo Institucional · fondos externos · financiamiento por desempeño</li></ul></div>
+              <div class="cell revenue"><h4>Logro de la misión</h4><ul><li>Producción indexada · rankings QS · vigencia de líneas</li></ul></div>
+            </div>
+          </div>
+          <p class="canvas-cap">Fuente: elaboración propia a partir de Blank (2016) y de lo fundamentado en este capítulo.</p>
+        </div>
+      </section>
+
+      <!-- 15 FINANCIACIÓN DE LA INVESTIGACIÓN -->
+      <section class="panel" id="sec-15" data-title="Modelo de Financiación de la Investigación" data-chapter="2 — Financiación">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">2.1 – 2.4 — Financiación de la investigación</p>
+            <h2 class="panel-title">El presupuesto de misión, formalizado</h2>
+            <p class="lede">El mecanismo contable que traduce el "flujo circular virtuoso" en una regla operable: el margen institucional del Posgrado de Formación constituye el excedente que se destina al Fondo Institucional de Investigación — ya no un principio declarativo, sino una regla trazable programa por programa.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame"><h3>Fondo Institucional de Investigación</h3><ul><li>Concursable, financiado por % de ingresos posgradual + % de otra oferta académica + fondos externos</li><li>Registro sistemático: fuente, monto, moneda, período</li><li>Retorno de la inversión calculado y reportado anualmente</li><li>Auditorías académicas y financieras anuales</li></ul></div>
+            <div class="frame amber"><h3>Flujo circular virtuoso</h3><p>El margen institucional por posgraduante del Posgrado de Formación (apartado 3.2.1) se destina al Fondo Institucional de Investigación — convirtiendo la sostenibilidad comercial del posgrado en financiamiento trazable de la ciencia.</p></div>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Full Costing Model</h3><p>Costo completo (directo + indirecto) de cada proyecto, condición para competir por fondos externos y exigirles cubrir también el costo indirecto.</p></div>
+            <div class="frame"><h3>OTRI</h3><p>Oficina de Transferencia de Resultados de Investigación: propiedad intelectual, licenciamiento, patentes, alianzas público-privadas.</p></div>
+            <div class="frame"><h3>Open Access (Gold/Green)</h3><p>Financiado con fondos para cargos de procesamiento (APC), para elevar el índice de citación (h) de la producción institucional.</p></div>
+          </div>
+          <blockquote class="quote">El financiamiento ligado a desempeño debe orientarse hacia resultados verificables —publicaciones, patentes, proyectos concluidos— y no solo hacia insumos.<cite>Jongbloed &amp; Vossensteyn (2001)</cite></blockquote>
+        </div>
+      </section>
+
+      <!-- 16 CLASIFICACIÓN DE COSTOS -->
+      <section class="panel" id="sec-16" data-title="Clasificación de costos" data-chapter="3.1.1 — Cuadro 2.18">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.1.1 — Dos principios + Cuadro 2.18</p>
+            <h2 class="panel-title">Nunca agregado, siempre por programa</h2>
+            <p class="lede">Dos principios transversales rigen todo el costeo: <b style="color:var(--ink)">(1)</b> todo cálculo se hace por programa o curso proyectado, nunca de manera agregada; <b style="color:var(--ink)">(2)</b> el costeo cubre el ciclo completo, desde el diseño hasta la emisión efectiva del diploma o certificado — no solo la fase docente.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Categoría</th><th>Definición</th><th>Ejemplos</th></tr></thead>
+              <tbody>
+                <tr><td>Costos fijos</td><td>No varían con el volumen, dentro de un rango</td><td>Depreciación, retribución básica, licencias</td></tr>
+                <tr><td>Costos variables</td><td>Varían proporcionalmente al volumen</td><td>Materiales, insumos de investigación, evaluación y graduación</td></tr>
+                <tr><td>Costos semivariables</td><td>Fijos hasta un umbral, luego variables</td><td>Personal administrativo de programas, horas docentes adicionales</td></tr>
+                <tr><td>Incentivos de productividad</td><td>Variables, reevaluados periódicamente</td><td>Complemento docente, incentivo por matriculación</td></tr>
+                <tr><td>Subsidio</td><td>Reducción del ingreso neto, explícita en el precio</td><td>Descuentos por categoría (apartado 3.3)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="stat"><b>5,9% – 8,4%</b><span>Depreciación como proporción del gasto institucional total, según IPEDS (Toutkoushian &amp; Paulsen, 2016) — no es una partida contable secundaria.</span></div>
+        </div>
+      </section>
+
+      <!-- 17 REMUNERACIÓN + ABC -->
+      <section class="panel" id="sec-17" data-title="Remuneración diferenciada y sistema ABC" data-chapter="3.1.2–3.1.3 — Cuadros 2.19 y 2.20">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.1.2 – 3.1.3 — Costos de personal y sistema de costeo</p>
+            <h2 class="panel-title">De la tarifa plana al incentivo verificable</h2>
+            <p class="lede">La tarifa plana no atrae a docentes de prestigio ni incentiva el desempeño de quien ya está vinculado. El Modelo exige remuneración compuesta, y Costeo Basado en Actividades (ABC) con centros de coste para toda la oferta posgradual y los proyectos de investigación.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame">
+              <h3>Remuneración docente</h3>
+              <ul>
+                <li><b style="color:var(--ink)">Retribución básica</b> — fija, por hora o módulo dictado</li>
+                <li><b style="color:var(--ink)">Complemento por grado y trayectoria</b> — diferenciado por categoría</li>
+                <li><b style="color:var(--ink)">Complemento de productividad</b> — reevaluado periódicamente, se consolida hasta la siguiente evaluación</li>
+              </ul>
+            </div>
+            <div class="frame amber">
+              <h3>Personal administrativo de programas</h3>
+              <p>Se rediseña como <b style="color:var(--ink)">costo semivariable</b>: base fija mínima + incentivo variable según matrícula efectiva y retención — articulado con el esquema de <em>inside sales</em>.</p>
+            </div>
+          </div>
+          <div class="frame"><h3>Costeo Basado en Actividades (ABC) con centros de coste</h3><p>Centros de coste: el Departamento de Posgrado de Formación, y cada Instituto/Centro/Grupo de Investigación. Pondera cada actividad por créditos académicos y administrativos consumidos, e imputa la evaluación/graduación como actividad independiente, porque su costo no se diluye con el tamaño de la cohorte.</p></div>
+        </div>
+      </section>
+
+      <!-- 18 FIJACIÓN DE PRECIOS -->
+      <section class="panel" id="sec-18" data-title="Fijación de precios" data-chapter="3.2 — Precio: costo + margen + subsidio">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.2 — Modelo de fijación de precios</p>
+            <h2 class="panel-title">El precio como costo ajustado, no como referencia de mercado</h2>
+            <p class="lede">Sin un producto equivalente en el mercado boliviano de posgrado (la "banca académica" es, por diseño, no comparable), el precio no puede fijarse por comparación con la competencia: se construye desde el costo y el valor percibido (Winston, 1999).</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="frame">
+              <h3>Posgrado de Formación</h3>
+              <ul>
+                <li><b style="color:var(--ink)">Volumen objetivo</b> — decisión institucional documentada, previa al cálculo (nunca un resultado de ecuación)</li>
+                <li><b style="color:var(--ink)">Margen institucional</b> — proporción explícita sobre el precio neto, fijada programa por programa</li>
+                <li><b style="color:var(--ink)">Subsidio y tributación</b> — variable explícita; IVA 13%, en transición normativa (Ley 1733, 2026)</li>
+              </ul>
+            </div>
+            <div class="frame amber">
+              <h3>Posgrado de Investigación</h3>
+              <p>No tiene precio de venta: su costo de referencia se cuantifica igual (Full Costing Model) pero se cubre con becas, fondos concursables, donantes o el propio proyecto financiado. El acceso ocurre por <b style="color:var(--ink)">convocatoria</b>, no por matrícula comercial.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 19 DESCUENTOS / LTV -->
+      <section class="panel" id="sec-19" data-title="Modelo de descuentos y LTV" data-chapter="3.3 — Cuadro 2.21">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.3 — Yield Management</p>
+            <h2 class="panel-title">El descuento como inversión de fidelización, no como derecho fijo</h2>
+            <p class="lede">Un reglamento con porcentajes fijos es estratégicamente perjudicial: desplaza a quien pagaría la tarifa completa y satura la capacidad instalada. El Modelo reclasifica a los tres grupos reglamentarios por su <b style="color:var(--ink)">Life Time Value (LTV)</b> y cruza demanda × precio del programa para decidir el descuento.</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="matrix-card"><div class="head"><b>Demanda alta · precio premium</b></div><p class="strategy">Maximización de rentabilidad</p><div class="rows"><div><span>LTV alto</span><p>Descuento bajo (simbólico): premia lealtad sin sacrificar margen.</p></div><div><span>LTV medio</span><p>Descuento nulo (0%): el cupo se reserva a tarifa completa.</p></div></div></div>
+            <div class="matrix-card"><div class="head"><b>Demanda alta · precio medio/bajo</b></div><p class="strategy">Control de saturación</p><div class="rows"><div><span>LTV alto</span><p>Descuento bajo, solo por volumen corporativo.</p></div><div><span>LTV medio</span><p>Descuento nulo: prioridad a controlar capacidad y costo variable.</p></div></div></div>
+            <div class="matrix-card"><div class="head"><b>Demanda media · precio premium</b></div><p class="strategy">Fidelización y upselling</p><div class="rows"><div><span>LTV alto</span><p>Descuento moderado: invierte en fortalecer su LTV.</p></div><div><span>LTV medio</span><p>Descuento bajo: empuja el cierre de la venta.</p></div></div></div>
+            <div class="matrix-card"><div class="head"><b>Demanda baja · riesgo de no apertura</b></div><p class="strategy">Estimulación agresiva de demanda</p><div class="rows"><div><span>LTV alto</span><p>Descuento alto: capta a la base más leal para abrir el paralelo.</p></div><div><span>LTV medio</span><p>Descuento moderado: menor jerarquía que el LTV alto.</p></div></div></div>
+          </div>
+          <div class="grid grid-4">
+            <div class="stat"><b>0%</b><span>Programas con demanda excedente — proteger rentabilidad y exclusividad</span></div>
+            <div class="stat"><b>5–10%</b><span>Simbólico: pertenencia, sin erosionar el margen</span></div>
+            <div class="stat"><b>15–20%</b><span>Estándar: tracción comercial, penetración de mercado</span></div>
+            <div class="stat"><b>25–35%</b><span>Agresivo: solo para viabilizar apertura en riesgo — tope 35%</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 20 DESCUENTO EFECTIVO + PUNTO DE EQUILIBRIO -->
+      <section class="panel" id="sec-20" data-title="Descuento efectivo y punto de equilibrio" data-chapter="3.3.2–3.4 — Cuadro 2.22">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.3.2 – 3.4 — Verificación continua</p>
+            <h2 class="panel-title">Superar el equilibrio en número no basta</h2>
+            <p class="lede">El <b style="color:var(--ink)">descuento efectivo</b> (medido sobre la cohorte real) rara vez coincide con el promedio simple de descuentos nominales. El <b style="color:var(--ink)">punto de equilibrio móvil</b> se recalcula con el ingreso neto real, y el indicador decisivo es el <b style="color:var(--ink)">margen acumulado proyectado</b> al cierre de la cohorte — no el margen del momento.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Situación</th><th>Acción</th></tr></thead>
+              <tbody>
+                <tr><td>Margen acumulado y proyectado, ambos positivos</td><td>Mantener o ajustar la política de descuentos vigente</td></tr>
+                <tr><td>Acumulado negativo, proyectado positivo</td><td>Continuar la captación con monitoreo continuo</td></tr>
+                <tr><td>Acumulado negativo, inscritos superan el equilibrio móvil</td><td>Revisar de inmediato la mezcla de descuentos: es más generosa de lo sostenible</td></tr>
+                <tr><td>Déficit simultáneo de volumen e ingresos</td><td>Acelerar captación (apartado 3.6) o replantear precio/costo</td></tr>
+                <tr><td>Proyectado negativo aun con volumen objetivo alcanzado</td><td>No autorizar apertura, o suspender continuidad</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 21 PORTAFOLIO DICKESON -->
+      <section class="panel" id="sec-21" data-title="Portafolio de oferta — Dickeson" data-chapter="3.5 — Cuadro 2.23">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.5 — Diez criterios de Dickeson (2010)</p>
+            <h2 class="panel-title">Diez criterios aplicados en conjunto, nunca aislados</h2>
+            <p class="lede">La deliberación de apertura, continuidad o cierre nunca se apoya solo en rentabilidad — eso reduciría el portafolio a una lógica estrictamente comercial. Orientada, además, a diversificar más allá de la hiperdependencia de pocas áreas temáticas ya documentada en el Diagnóstico.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>N.º</th><th>Criterio</th><th>Evidencia dentro del Modelo</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>Historia, desarrollo y expectativas</td><td>Trayectoria del programa en la EMI</td></tr>
+                <tr><td>2</td><td>Demanda externa</td><td>Volumen objetivo documentado (3.2.1.3)</td></tr>
+                <tr><td>3</td><td>Demanda interna</td><td>Pertinencia con líneas de investigación activas</td></tr>
+                <tr><td>4</td><td>Calidad de insumos y procesos</td><td>Claustro docente-investigador</td></tr>
+                <tr><td>5</td><td>Calidad de resultados</td><td>Indicadores de aseguramiento de calidad</td></tr>
+                <tr><td>6</td><td>Tamaño, escala y productividad</td><td>Margen acumulado y punto de equilibrio móvil</td></tr>
+                <tr><td>7</td><td>Ingresos y recursos generados</td><td>Ingreso neto promedio por posgraduante</td></tr>
+                <tr><td>8</td><td>Costos y gastos asociados</td><td>Costo unitario real</td></tr>
+                <tr><td>9</td><td>Impacto y esencialidad institucional</td><td>Vocación en defensa, seguridad e ingeniería aplicada</td></tr>
+                <tr><td>10</td><td>Análisis de oportunidad</td><td>Comparación frente a otros programas por los mismos recursos</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 22 COMERCIALIZACIÓN -->
+      <section class="panel" id="sec-22" data-title="Comercialización y canales" data-chapter="3.6 — Cuadro 2.24">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.6 — Función comercial estructurada</p>
+            <h2 class="panel-title">Diez canales, un mismo embudo de conversión</h2>
+            <p class="lede">La EMI necesita fuerza de ventas propia, CRM y esquema de incentivo explícito — no delegar la captación en personal administrativo sin función comercial. Esta función provee, además, la evidencia de demanda que sustenta el volumen objetivo.</p>
+          </div>
+          <div class="grid grid-3">
+            <div class="frame"><h3>Inside sales</h3><p>Equipo interno que contacta activamente a los interesados para cerrar la matrícula.</p></div>
+            <div class="frame"><h3>Convenios B2B</h3><p>Acuerdos "in-company" para matricular personal de forma masiva y recurrente.</p></div>
+            <div class="frame"><h3>Ferias de educación ejecutiva</h3><p>Participación presencial donde varias instituciones exhiben su oferta.</p></div>
+            <div class="frame"><h3>Alumni referral</h3><p>Egresados recomiendan el programa a cambio de un incentivo.</p></div>
+            <div class="frame"><h3>Inbound / CRM</h3><p>El interesado llega por contenido digital y queda en seguimiento automatizado.</p></div>
+            <div class="frame"><h3>Social selling docente</h3><p>Docentes e investigadores promocionan la oferta en sus redes profesionales.</p></div>
+            <div class="frame"><h3>Freemium trial</h3><p>Primer módulo gratis, para reducir la fricción de decisión.</p></div>
+            <div class="frame"><h3>Suscripción corporativa</h3><p>Tarifa anual fija que da un paquete de cupos a la empresa.</p></div>
+            <div class="frame"><h3>Brokerage</h3><p>Un intermediario capta matriculados a cambio de comisión.</p></div>
+            <div class="frame amber"><h3>IA / Lead scoring</h3><p>Chatbots que califican automáticamente la probabilidad de matrícula.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 23 SUBSIDIO CRUZADO -->
+      <section class="panel" id="sec-23" data-title="Prohibición de subsidio cruzado" data-chapter="3.7 — Subsidio cruzado">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">3.7 — Regla no declarativa</p>
+            <h2 class="panel-title">El subsidio solo corre en un sentido</h2>
+            <p class="lede">El único sentido válido del subsidio cruzado dentro de la EMI es el que va de la formación posgradual hacia la investigación — nunca de la matrícula de grado hacia el posgrado.</p>
+          </div>
+          <blockquote class="quote">La pregunta pertinente no es si existe un subsidio entre el grado y el posgrado, sino si ese subsidio es una decisión institucional deliberada y medida, o una consecuencia no intencionada de la ausencia de un sistema contable diferenciado.<cite>A partir de Johnstone &amp; Marcucci (2010)</cite></blockquote>
+          <div class="frame"><h3>Condición exigida</h3><p>Una cuenta presupuestaria propia de posgrado, separada de la de grado: ingresos (matrícula, colegiatura, descuentos) y egresos (personal, depreciación, gastos operativos) diferenciados. Hasta que ese desglose exista, la cuantía del subsidio cruzado permanece como un dato no verificable.</p></div>
+        </div>
+      </section>
+
+      <!-- 24 GESTIÓN ADMINISTRATIVA -->
+      <section class="panel" id="sec-24" data-title="Gestión administrativa de la investigación" data-chapter="4 — Gestión administrativa">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">4.1 – 4.4 — Ejecución, trazabilidad, sedes, reporting</p>
+            <h2 class="panel-title">Un tablero único, no reportes dispersos</h2>
+            <p class="lede">Todo proyecto financiado registra, como condición de aprobación: fuente, monto, moneda y período de ejecución — la base técnica indispensable para que el retorno de la inversión en investigación deje de ser una meta declarativa.</p>
+          </div>
+          <div class="steps">
+            <div class="step-row"><span class="num">1</span><div><h4>Cochabamba y Santa Cruz</h4><p>Consolidar su participación en la ejecución de proyectos de investigación.</p></div></div>
+            <div class="step-row"><span class="num">2</span><div><h4>Riberalta y El Trópico</h4><p>Estrategia mínima híbrida, dadas sus restricciones de conectividad.</p></div></div>
+            <div class="step-row"><span class="num">3</span><div><h4>Modalidad online / semipresencial</h4><p>Con control de pagos y de ejecución integrado entre sedes.</p></div></div>
+            <div class="step-row"><span class="num">4</span><div><h4>Protocolos de continuidad</h4><p>Ante bloqueos u otras interrupciones de operación en una sede específica.</p></div></div>
+          </div>
+          <p class="lede" style="margin-top:0;">Todos los indicadores de este capítulo —margen acumulado, punto de equilibrio móvil, % de proyectos con fuente registrada, participación por sede— se integran al Sistema de Información y Gestión de la Calidad ya fundamentado en el Capítulo 1: un tronco común de datos, sin duplicación.</p>
+        </div>
+      </section>
+
+      <!-- 25 CIERRE -->
+      <section class="panel" id="sec-25" data-title="Síntesis" data-chapter="Cierre">
+        <div class="stack">
+          <div>
+            <p class="eyebrow">Cierre</p>
+            <h2 class="panel-title">Dos lógicas de valor, un mismo sistema financiero</h2>
+            <p class="lede" style="max-width:68ch;">El Posgrado de Formación capta ingreso y genera margen; el Posgrado de Investigación moviliza presupuesto y genera reputación. Ninguno subsidia al otro en el sentido equivocado, ambos comparten el mismo sistema de costeo, y el excedente del primero financia, de manera trazable, al segundo — cerrando el flujo circular virtuoso que sostiene a la oferta posgradual completa de la EMI.</p>
+          </div>
+          <div class="closing-rule"></div>
+          <p class="source-note">Capítulo 2 — Modelo de Postgrado e Investigación, Escuela Militar de Ingeniería · Fase 2, Acción 1 · Documento de trabajo en redacción, 2026.</p>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <button class="menubtn" id="menubtn"><span class="bars"><span></span><span></span><span></span></span>Índice</button>
+      <div class="cell" style="min-width:150px;"><span>Documento</span><b>Modelo de Negocio EMI</b></div>
+      <div class="cell hide-sm" style="min-width:170px;"><span>Sección</span><b id="tb-chapter">—</b></div>
+      <div class="cell hide-sm"><span>Lámina</span><b id="tb-count">01 / 26</b></div>
+      <div class="spacer"></div>
+      <div class="cell hide-sm" style="border-right:none;"><span>Fase</span><b>2 · 2026</b></div>
+      <div class="nav-btns" style="display:flex;">
+        <button class="navbtn" id="prevbtn" aria-label="Sección anterior">◀ ANT.</button>
+        <button class="navbtn" id="nextbtn" aria-label="Siguiente sección">SIG. ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var groups = [
+    { label:"Portada", items:[0] },
+    { label:"Índice", items:[1] },
+    { label:"1 · Modelo de Negocio — Posgrado de Formación (BMC)", items:[2,3,4,5,6,7,8] },
+    { label:"1 · Modelo de Negocio — Posgrado de Investigación (MMC)", items:[9,10,11,12,13,14] },
+    { label:"2 · Financiación de la Investigación", items:[15] },
+    { label:"3 · Costeo, Precio y Sostenibilidad", items:[16,17,18,19,20,21,22,23] },
+    { label:"4 · Gestión Administrativa", items:[24] },
+    { label:"Cierre", items:[25] }
+  ];
+
+  var panels = Array.prototype.slice.call(document.querySelectorAll(".panel"));
+  var nav = document.getElementById("nav");
+  var navItems = [];
+  var viewport = document.getElementById("viewport");
+
+  groups.forEach(function(g){
+    var grp = document.createElement("div");
+    grp.className = "nav-group";
+    var label = document.createElement("p");
+    label.className = "group-label";
+    label.textContent = g.label;
+    grp.appendChild(label);
+    g.items.forEach(function(i){
+      var btn = document.createElement("button");
+      btn.className = "nav-item";
+      btn.innerHTML = '<span class="n">' + String(i).padStart(2,"0") + "</span><span>" + panels[i].dataset.title + "</span>";
+      btn.addEventListener("click", function(){
+        panels[i].scrollIntoView({ behavior:"smooth", block:"start" });
+        closeSidebar();
+      });
+      grp.appendChild(btn);
+      navItems.push(btn);
+    });
+    nav.appendChild(grp);
+  });
+
+  var current = 0;
+  var tbChapter = document.getElementById("tb-chapter");
+  var tbCount = document.getElementById("tb-count");
+  var prevbtn = document.getElementById("prevbtn");
+  var nextbtn = document.getElementById("nextbtn");
+
+  function setActive(i){
+    if (i === current) return;
+    current = i;
+    navItems.forEach(function(b,idx){ b.classList.toggle("active", idx===i); });
+    tbChapter.textContent = panels[i].dataset.chapter || panels[i].dataset.title;
+    tbCount.textContent = String(i+1).padStart(2,"0") + " / " + String(panels.length).padStart(2,"0");
+    prevbtn.disabled = i === 0;
+    nextbtn.disabled = i === panels.length - 1;
+    var active = navItems[i];
+    if (active && active.scrollIntoView) active.scrollIntoView({ block:"nearest" });
+  }
+  setActive(0);
+  current = -1; setActive(0);
+
+  var revealIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in-view"); revealIO.unobserve(e.target); }
+    });
+  }, { root: viewport, threshold:0.08 });
+  panels.forEach(function(p){ revealIO.observe(p); });
+
+  var spyIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        var idx = panels.indexOf(e.target);
+        if (idx > -1) setActive(idx);
+      }
+    });
+  }, { root: viewport, rootMargin:"0px 0px -70% 0px", threshold:0 });
+  panels.forEach(function(p){ spyIO.observe(p); });
+
+  function go(i){
+    i = Math.max(0, Math.min(panels.length - 1, i));
+    panels[i].scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  prevbtn.addEventListener("click", function(){ go(current - 1); });
+  nextbtn.addEventListener("click", function(){ go(current + 1); });
+
+  window.addEventListener("keydown", function(ev){
+    if (["ArrowRight","ArrowDown","PageDown"].indexOf(ev.key) > -1){ ev.preventDefault(); go(current+1); }
+    else if (["ArrowLeft","ArrowUp","PageUp"].indexOf(ev.key) > -1){ ev.preventDefault(); go(current-1); }
+    else if (ev.key === "Home"){ ev.preventDefault(); go(0); }
+    else if (ev.key === "End"){ ev.preventDefault(); go(panels.length-1); }
+  });
+
+  var sidebar = document.getElementById("sidebar");
+  var scrim = document.getElementById("scrim");
+  var menubtn = document.getElementById("menubtn");
+  function openSidebar(){ sidebar.classList.add("open"); scrim.classList.add("open"); }
+  function closeSidebar(){ sidebar.classList.remove("open"); scrim.classList.remove("open"); }
+  menubtn.addEventListener("click", function(){ sidebar.classList.contains("open") ? closeSidebar() : openSidebar(); });
+  scrim.addEventListener("click", closeSidebar);
+})();
+</script>
+</body>
+</html>
